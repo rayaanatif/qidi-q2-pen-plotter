@@ -7,7 +7,7 @@ Pen plotting needs one cfg file on the printer (`plotter.cfg`, included from `pr
 ## What is in the web app
 
 - Import as many SVGs as you want into one workspace. Move, scale, rotate, flip, mirror, align and snap them.
-- Upload PNG or JPEG images and convert them to SVG, tuned in the app: line art, outline, edges or tone. Send the result straight to the workspace.
+- Upload PNG or JPEG images and convert them to SVG, tuned in the app: outline, photo edges or tone. Send the result straight to the workspace.
 - Built-in editor for text (single-stroke font, so each letter is drawn once) and shapes: rectangle, ellipse, line, polygon, star, spiral.
 - Paper sizes and presets, with offsets and positions. Filled regions as outline plus hatch fill. Tone fill turns different shades into different crosshatch densities.
 - Whole-page mode: plots the area the pen can reach, you turn the sheet 180 degrees, and it plots the rest.

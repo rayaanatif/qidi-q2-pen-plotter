@@ -324,7 +324,6 @@ canvas{border-radius:2px;border-color:#3a3a40}
       <p class="hint" id="imHint">Load a PNG, JPEG, GIF or WebP. It is turned into SVG paths right here, and nothing is uploaded anywhere. Tune it until the right-hand preview looks good, then send it to the plotter.</p>
       <label style="margin-top:10px">Mode
         <select id="imMode" style="width:100%">
-          <option value="line">Line art: centre lines of dark strokes (sketches, drawings)</option>
           <option value="outline">Outline shapes: edges of dark areas (logos, silhouettes)</option>
           <option value="edges">Photo edges: line detection on a photo</option>
           <option value="tone">Tone: shaded regions, for the Tone fill</option>
@@ -345,7 +344,7 @@ canvas{border-radius:2px;border-color:#3a3a40}
       </div>
       <label style="flex-direction:row;align-items:center;gap:8px;margin:10px 0 0;color:var(--ink);font-size:13px"><input type="checkbox" id="imInv"> Invert (trace the light parts instead)</label>
       <div class="row" style="margin-top:10px"><button class="btn" id="imAuto" data-modes="line outline tone">Auto cut-off</button></div>
-      <p class="hint">Line art thins thick strokes down to a single pen line, which is what a plotter needs for sketches. Outline shapes draws round the edge of each dark area instead. Photo edges finds contours in photos. Tone splits a picture into grey bands that the Tone fill then hatches more densely where it is darker.</p>
+      <p class="hint">Outline shapes draws round the edge of each dark area instead. Photo edges finds contours in photos. Tone splits a picture into grey bands that the Tone fill then hatches more densely where it is darker.</p>
     </div>
   </div>
   <div>
@@ -1098,7 +1097,7 @@ function thin(m,w,h){
 function contours(m,w,h){
   const W2=w+2,H2=h+2,pad=new Uint8Array(W2*H2);
   for(let y=0;y<h;y++)for(let x=0;x<w;x++)pad[(y+1)*W2+x+1]=m[y*w+x];
-  const K=2*W2+4,segs=new Map(),T=(x,y)=>(2*x+1)*K+2*y,R=(x,y)=>(2*x+2)*K+2*y+1,B=(x,y)=>(2*x+1)*K+2*y+2,L=(x,y)=>(2*x)*K+2*y+1;
+  const K=2*H2+4,segs=new Map(),T=(x,y)=>(2*x+1)*K+2*y,R=(x,y)=>(2*x+2)*K+2*y+1,B=(x,y)=>(2*x+1)*K+2*y+2,L=(x,y)=>(2*x)*K+2*y+1;
   const add=(a,b)=>{let s=segs.get(a);if(!s)segs.set(a,s=[]);s.push(b);s=segs.get(b);if(!s)segs.set(b,s=[]);s.push(a)};
   for(let y=0;y<H2-1;y++)for(let x=0;x<W2-1;x++){
     const a=pad[y*W2+x],b=pad[y*W2+x+1],c=pad[(y+1)*W2+x+1],d=pad[(y+1)*W2+x],ci=a*8+b*4+c*2+d;
@@ -1136,10 +1135,14 @@ function skeletonPaths(m,w,h){
   for(const i of list){
     if(deg[i]<3||cl[i]>=0)continue;
     const id=cc.length,st=[i];cl[i]=id;let sx=0,sy=0,n=0;
-    while(st.length){const p=st.pop();sx+=(p%w)+0.5;sy+=((p/w)|0)+0.5;n++;for(const q of nbrs(p))if(deg[q]>=3&&cl[q]<0){cl[q]=id;st.push(q)}}
+    const mem=[];
+    while(st.length){const p=st.pop();mem.push(p);sx+=(p%w)+0.5;sy+=((p/w)|0)+0.5;n++;for(const q of nbrs(p))if(deg[q]>=3&&cl[q]<0){cl[q]=id;st.push(q)}}
+    let ok=n<=10;
+    if(ok){let x0=1e9,x1=-1e9,y0=1e9,y1=-1e9;for(const p of mem){const x=p%w,y=(p/w)|0;x0=Math.min(x0,x);x1=Math.max(x1,x);y0=Math.min(y0,y);y1=Math.max(y1,y)}ok=x1-x0<=4&&y1-y0<=4}
+    if(!ok){for(const p of mem)cl[p]=-2;cc.push(null);continue}
     cc.push([sx/n,sy/n]);
   }
-  const nid=i=>deg[i]>=3?"c"+cl[i]:"e"+i,pc=i=>deg[i]>=3?cc[cl[i]]:[(i%w)+0.5,((i/w)|0)+0.5];
+  const nid=i=>cl[i]>=0?"c"+cl[i]:"e"+i,pc=i=>cl[i]>=0?cc[cl[i]]:[(i%w)+0.5,((i/w)|0)+0.5];
   const vis=new Set(),ek=(a,b)=>a<b?a*(w*h)+b:b*(w*h)+a,paths=[];
   const walk=(start,first)=>{
     const p=[start,first];vis.add(ek(start,first));let prev=start,cur=first;
@@ -1148,7 +1151,7 @@ function skeletonPaths(m,w,h){
       if(!ns.length)break;const n=ns[0];vis.add(ek(cur,n));p.push(n);prev=cur;cur=n;
     }
     const a=p[0],b=p[p.length-1];
-    if(deg[a]>=3&&deg[b]>=3&&cl[a]===cl[b]&&p.length<=3)return;
+    if(cl[a]>=0&&cl[b]>=0&&cl[a]===cl[b]&&p.length<=3)return;
     const pts=p.map(i=>[(i%w)+0.5,((i/w)|0)+0.5]);pts[0]=pc(a);pts[pts.length-1]=pc(b);
     paths.push({pts:pts,n0:nid(a),n1:nid(b),spur:deg[a]===1||deg[b]===1});
   };
@@ -1216,9 +1219,6 @@ function imRun(){
   if(mode==="outline"){
     const m=despeckle(mkMask(),w,h,minA);
     contours(m,w,h).forEach(p=>res.lines.push(fin(p,true)));
-  }else if(mode==="line"){
-    const m=thin(despeckle(mkMask(),w,h,minA),w,h);
-    chainPaths(skeletonPaths(m,w,h).filter(o=>!o.spur||plen(o.pts)>=Math.max(2,minA*0.6))).forEach(p=>res.lines.push(fin(p,false)));
   }else if(mode==="edges"){
     const sens=Math.max(5,parseFloat($("imEdge").value)||40),mag=new Float32Array(w*h);
     for(let y=1;y<h-1;y++)for(let x=1;x<w-1;x++){const i=y*w+x;
