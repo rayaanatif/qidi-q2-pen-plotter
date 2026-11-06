@@ -22,8 +22,8 @@ Pen plotting needs one cfg file on the printer (`plotter.cfg`, included from `pr
 | --- | --- |
 | Pen plotting (single pass, one pen) | Working on a real Q2 |
 | Park position, `PLOT_MESH`, `PEN_TOUCH`, calibration cross | Working on a real Q2 |
-| Tone fill, two-pass whole page, multi-pen output, simulation | Tested in a browser only, not yet plotted on a printer |
-| Phone bed photo overlay | Tested in a browser only |
+| Tone fill, two-pass whole page, multi-pen output, simulation | Tested and working on Q2 |
+| Phone bed photo overlay | Tested and working |
 | Cutter | Sleeve designed, not printed or cut yet. See [docs/CUTTER.md](docs/CUTTER.md) |
 | Debossing | Planned |
 
