@@ -12,7 +12,7 @@ Do this once. Every plot after that is the short loop at the bottom.
 
 1. Home **with no cartridge fitted.** The pen sticks out below the nozzle.
 2. Drop the cartridge with the pen in from the top.
-3. Set the pen tip about 5 mm below the nozzle tip, measured from the nozzle, not from the holder.
+3. Set the pen height with the pen height jig (see [hardware](../hardware/README.md)), so the tip always sticks out the same amount below the cartridge collar. Without the jig, set the tip about 5 mm below the nozzle tip, measured from the nozzle, not from the holder.
 4. Nip the M2x8 clamp screw.
 
 ## 3. Install `plotter.cfg`
