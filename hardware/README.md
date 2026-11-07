@@ -9,9 +9,7 @@ All files are in `stl/` (print-ready) and `step/` (for editing). Version 4.
 | `qs_cover_v4_A_FRONT_DOWN_print.stl` | Cover, variant A | Front face down, no supports |
 | `qs_cover_v4_B_FRONT_DOWN_print.stl` | Cover, variant B | Front face down, no supports |
 | `qs_pen_bay_v4_print.stl` | Pen bay | Already flipped, flat crossbar on the bed |
-| `qs_pen_cartridge_v4_bore9.0.stl` | Pen cartridge | Print upright. Pick the bore that fits your pen: 9.0, 9.5 or 10.0 |
-| `qs_pen_cartridge_v4_bore9.5.stl` | | |
-| `qs_pen_cartridge_v4_bore10.0.stl` | | |
+| `qs_pen_cartridge_v4_bore7.0.stl` to `bore11.5.stl` | Pen cartridge | Print upright. One file per pen size, in 0.5 mm steps from 7.0 to 11.5 mm. Pick the bore about 0.1 to 0.2 mm bigger than your pen's barrel. All of them have the same outside, so they fit the same bay, clip and jig. Walls get thin above 10.5 mm, so print those slowly at 100% infill |
 | `qs_pen_height_jig_v1_tip3.2/4.2/5.2.stl` | Pen height jig | Sets how far the pen tip sticks out below the cartridge collar, so you don't need `PEN_TOUCH` after every pen change. Pick the number that matches your tip height (4.2 mm is what I use) |
 | `qs_bay_wedge_clip_v1_end7.7/7.9/8.1.stl` | Screwless clamp | A wedge clip that slides onto the bay's two clamp ears and squeezes them shut instead of the M2 screw. See below |
 | `qs_cutter_sleeve_v1_bore10.5/11.0/11.5.stl` | Cutter sleeve | Experimental, see [../docs/CUTTER.md](../docs/CUTTER.md) |
