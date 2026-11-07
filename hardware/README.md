@@ -54,3 +54,10 @@ The bay's clamp ears are 8.8 mm thick with the slit open and 8.0 mm with it clos
 3. The taper squeezes the slit shut. The slope is shallow enough (about 6 degrees on each side) that friction keeps it locked.
 
 Print it upright (the U standing on its mouth) in PETG or ABS, 100% infill, 4 perimeters. Try the 7.9 first. If it will not go on, use 8.1. If it goes on but is loose, use 7.7.
+
+## Looser dovetail bay
+
+The original `qs_pen_bay_v4_print.stl` has a very snug dovetail (0.22 mm groove clearance): it slides on but is hard to remove. Two looser versions are included. Everything else on the bay is unchanged.
+
+- `qs_pen_bay_v4_looser_dovetail_0.30.stl`: slightly looser (grooves about 0.08 mm wider). Try this first.
+- `qs_pen_bay_v4_looser_dovetail_0.40.stl`: looser again (about 0.18 mm wider) if 0.30 is still tight.
