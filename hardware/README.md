@@ -61,3 +61,5 @@ The original cover A has a very snug dovetail: it slides on but is hard to remov
 
 - `qs_cover_v4_A_dovetail_looser_2.20_top-1.8_print.stl`: slightly looser (rails about 0.1 mm thinner on each flank). Try this first.
 - `qs_cover_v4_A_dovetail_looser_2.10_top-1.8_print.stl`: looser again (about 0.2 mm).
+
+STEP versions of both (same planar-face model as the other cover STEP files, so they open as clean solids): `hardware/step/qs_cover_v4_A_dovetail_looser_2.20_top-1.8_FRONT_DOWN_print.step` and the 2.10 one, plus `_model_orientation` copies. Printed front-down, nothing overhangs more than 45.3 degrees and there are no flat downward faces above the bed.
