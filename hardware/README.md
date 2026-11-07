@@ -64,3 +64,10 @@ The original cover A has a very snug dovetail: it slides on but is hard to remov
 - `_model_orientation` copies of both are in the same folder.
 
 Printed front-down, nothing overhangs more than 45.3 degrees and there are no flat downward faces above the bed.
+
+## Stiffer pen bay (v5)
+
+The v4 bay flexes along the short length of spine between the bracket and the pen tube. v5 adds two side wings along that section, outside the pen and collar footprint, so it still slides on and off the same way. The dovetail grooves are the same as v4, so it fits the looser cover above.
+
+- `qs_pen_bay_v5_stiff_flanges_print.stl`: side wings only. About 4 to 10 times stiffer against bending in the weak section.
+- `qs_pen_bay_v5_stiff_flanges_comb_print.stl`: the same, plus three small tines that slide into the middle front vents of the cover to lock the bay sideways. Cut the tines off if they bind.
