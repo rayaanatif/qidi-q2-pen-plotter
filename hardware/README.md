@@ -65,12 +65,14 @@ The original cover A has a very snug dovetail: it slides on but is hard to remov
 
 Printed front-down, nothing overhangs more than 45.3 degrees and there are no flat downward faces above the bed.
 
-## Stiffer pen bay (v5)
+## Stiffer, support-free pen bay (v6)
 
-The v4 bay flexes along the short length of spine between the bracket and the pen tube. v5 adds two side wings along that section, outside the pen and collar footprint, so it still slides on and off the same way. The dovetail grooves are unchanged from v4 (0.22 mm clearance); the extra slide clearance comes from the thinner rails on the looser cover above.
+The v4 bay flexes along the short length of spine between the bracket and the pen tube. v6 adds two side wings along that section, outside the pen and collar footprint, so it still slides on and off the same way. The dovetail grooves are unchanged from v4 (0.22 mm clearance); the extra slide clearance comes from the thinner rails on the looser cover above.
 
-- `qs_pen_bay_v5_stiff_flanges_comb_print.step`: side wings plus three small tines that slide into the middle front vents of the cover to lock the bay sideways. Cut the tines off if they bind.
-- `qs_pen_bay_v5_stiff_flanges_print.step`: side wings only.
+The top end of the pen barrel is now a single 45 degree ramp merged into the spine instead of a floating ring, so the bay prints bracket-down with no supports. The barrel's top no longer has a flat rim, so the pen cartridge has to seat from the bottom end.
+
+- `qs_pen_bay_v6_ramp_flanges_comb_print.step`: side wings plus three small tines that slide into the middle front vents of the cover to lock the bay sideways. Cut the tines off if they bind.
+- `qs_pen_bay_v6_ramp_flanges_print.step`: side wings only.
 - `_model_orientation` copies of both are in the same folder.
 
-Printed bracket-down, nothing overhangs more than 45 degrees (the M2 teardrop holes now point their tip up). The round parts (tube and bore) are 72-sided polygons in the STEP.
+Printed bracket-down, nothing overhangs more than 45 degrees (the M2 teardrop holes point their tip up). The round parts (tube and bore) are 72-sided polygons in the STEP.
