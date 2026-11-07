@@ -57,9 +57,10 @@ Print it upright (the U standing on its mouth) in PETG or ABS, 100% infill, 4 pe
 
 ## Looser dovetail cover (shorter top)
 
-The original cover A has a very snug dovetail: it slides on but is hard to remove. These versions thin the cover's dovetail rails and lower the roof by 1.8 mm. The pen bay is unchanged.
+The original cover A has a very snug dovetail: it slides on but is hard to remove. These STEP files thin the cover's dovetail rails and lower the roof by 1.8 mm. The pen bay is unchanged. The roof pin holes have a flat-tipped teardrop so the roof edge stays closed above them (0.6 mm wall).
 
-- `qs_cover_v4_A_dovetail_looser_2.20_top-1.8_print.stl`: slightly looser (rails about 0.1 mm thinner on each flank). Try this first.
-- `qs_cover_v4_A_dovetail_looser_2.10_top-1.8_print.stl`: looser again (about 0.2 mm).
+- `qs_cover_v4_A_dovetail_looser_2.20_top-1.8_FRONT_DOWN_print.step`: slightly looser (rails about 0.1 mm thinner on each flank). Try this first.
+- `qs_cover_v4_A_dovetail_looser_2.10_top-1.8_FRONT_DOWN_print.step`: looser again (about 0.2 mm).
+- `_model_orientation` copies of both are in the same folder.
 
-STEP versions of both (same planar-face model as the other cover STEP files, so they open as clean solids): `hardware/step/qs_cover_v4_A_dovetail_looser_2.20_top-1.8_FRONT_DOWN_print.step` and the 2.10 one, plus `_model_orientation` copies. Printed front-down, nothing overhangs more than 45.3 degrees and there are no flat downward faces above the bed.
+Printed front-down, nothing overhangs more than 45.3 degrees and there are no flat downward faces above the bed.
