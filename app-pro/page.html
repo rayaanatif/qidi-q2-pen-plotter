@@ -272,6 +272,7 @@ nav{align-items:stretch}
     <div class="panel">
       <h2>Bed photo</h2>
       <div class="row">
+        <button class="btn" id="bParkPhoto" title="Runs PLOT_PARK: moves the toolhead to the rear purge spot so the bed is clear for the photo">Park toolhead for photo</button>
         <button class="btn" id="bPhone">Use phone camera</button>
         <label class="btn" style="cursor:pointer">Choose photo file<input type="file" id="photoFile" accept="image/*" style="display:none"></label>
       </div>
@@ -2203,6 +2204,11 @@ $("bStatus").addEventListener("click",async()=>{
     const prof=s.bed_mesh&&s.bed_mesh.profiles?Object.keys(s.bed_mesh.profiles):[];
     $("pStat").textContent=(s.print_stats?s.print_stats.state:"?")+" | homed "+((s.toolhead&&s.toolhead.homed_axes)||"none")+" | XYZ "+pos+" | mesh: "+(prof.includes("plot")?"plot ready":"no plot mesh")}
   catch(e){$("pStat").textContent="problem: "+e.message}
+});
+$("bParkPhoto").addEventListener("click",async()=>{
+  photoMsg("Moving the toolhead out of the way ...");
+  try{await api("/api/gcode",{script:"PLOT_PARK"});photoMsg("Toolhead parked at the rear. Take the photo now.")}
+  catch(e){photoMsg("Could not park: "+e.message+" (home X/Y first, and check the printer IP in Settings)")}
 });
 $("bMesh").addEventListener("click",async()=>{
   if(!$("kOut").checked){pmsg("err","Tick that the pen cartridge is removed first.");return}
