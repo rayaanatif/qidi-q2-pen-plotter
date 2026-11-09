@@ -108,6 +108,13 @@ def lan_ip():
     except Exception:
         return "127.0.0.1"
 
+GCODE_OK = [
+    r"^PLOT_MESH( [A-Z_]+=-?\d+(\.\d+)?)*$",
+    r"^(PLOT_PARK|PLOT_END|PEN_TOUCH)$",
+    r"^G28( [XYZ])*$",
+    r"^(M84|FIRMWARE_RESTART|RESTART)$",
+]
+
 class P(BaseHTTPRequestHandler):
     """LAN-facing handler: only the phone page and the photo upload, both need the phone token."""
     def log_message(self, *a): pass
@@ -171,8 +178,8 @@ class H(BaseHTTPRequestHandler):
                 return self._json(200, {"ok": True, "name": name, "lines": g.count("\n")})
             if p == "/api/gcode":
                 script = (d.get("script") or "").strip()
-                if not re.match(r"^PLOT_MESH( [A-Z_]+=\d+(\.\d+)?)*$", script):
-                    raise ValueError("only PLOT_MESH commands can be run from this app")
+                if not any(re.match(x, script) for x in GCODE_OK):
+                    raise ValueError("this command is not allowed from the app (allowed: PLOT_*/PEN_TOUCH macros, G28, M84, restarts)")
                 call(ip, "/printer/gcode/script", json.dumps({"script": script}).encode(), {"Content-Type": "application/json"}, timeout=1800, method="POST")
                 return self._json(200, {"ok": True})
             if p == "/api/status":
