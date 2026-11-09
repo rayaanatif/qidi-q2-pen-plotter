@@ -76,3 +76,7 @@ The top end of the pen barrel is now a single 45 degree ramp merged into the spi
 - `_model_orientation` copies of both are in the same folder.
 
 Printed bracket-down, nothing overhangs more than 45 degrees (the M2 teardrop holes point their tip up). The round parts (tube and bore) are 72-sided polygons in the STEP.
+
+## Pen cartridges as STEP
+
+`hardware/step/qs_pen_cartridge_v4_bore9.0.step` and `..._bore10.0.step` are clean STEP versions of the 9.0 and 10.0 mm cartridges. Print them collar-up (the collar cone and the funnel are 45 degrees, so no supports). The round faces are 72-sided polygons. Other bore sizes are available as STL.
