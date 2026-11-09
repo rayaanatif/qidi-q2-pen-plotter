@@ -2041,7 +2041,11 @@ function findPlate(){ /* returns 4 photo points [RL,RR,FR,FL] (full-res px) or n
   if(!best)return null;const hl=best.hl;
   const pick=f=>hl.reduce((a,p)=>f(p)>f(a)?p:a,hl[0]);
   const tl=pick(p=>-(p[0]+p[1])),tr=pick(p=>p[0]-p[1]),br=pick(p=>p[0]+p[1]),bl=pick(p=>-p[0]+p[1]);
-  return [tl,tr,br,bl].map(p=>[p[0]/sc,p[1]/sc]);
+  const q=[tl,tr,br,bl],L=[0,1,2,3].map(i=>Math.hypot(q[i][0]-q[(i+1)%4][0],q[i][1]-q[(i+1)%4][1]));
+  const bad=Math.max.apply(null,L)/Math.max(1,Math.min.apply(null,L))>1.9||q.some(p=>p[0]<W*.015||p[1]<H*.015||p[0]>W*.985||p[1]>H*.985);
+  /* if the guess is not plate-shaped (or runs off the picture), start from a centred box instead; it is easier to drag from there */
+  const out=bad?[[.2,.15],[.8,.15],[.8,.85],[.2,.85]].map(p=>[p[0]*W,p[1]*H]):q;
+  return out.map(p=>[p[0]/sc,p[1]/sc]);
 }
 function findSheet(h){ /* h maps bed mm -> photo px. Looks at the plate area (plus a strip in front) in top-down view, 1 px = 1 mm */
   const P=plateRect(),M=30,X0=Math.floor(P.x-M),X1=Math.ceil(P.x+P.s+M),Y1=Math.ceil(P.y+M),Y0=Math.floor(P.y-P.s-M),W=X1-X0,H=Y1-Y0;
