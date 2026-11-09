@@ -29,6 +29,7 @@ Bed photo (phone camera)
   Two ways to align:
     - "Align to plate corners": tap the four corners of the build plate (rear-left, rear-right, front-right, front-left). Works wherever the paper is.
     - "Align to sheet corners": tap the four corners of the sheet instead, in the same order. Use this when the paper is placed exactly as set under "Paper on the bed" (left edge X, rear edge Y, size). It can be more accurate right where you will draw.
+  Measure on photo: once the photo is aligned, press "Measure on photo", move the crosshair to a spot and press Add point for the next. It lists each point's bed X/Y, the distance and direction between points, path length, angles and the area. Distances are on the plate surface, so raised things (toolhead, rail) read wrong. "Copy results" copies the list.
   5. The photo sits under the drawing in the bed preview. Use the opacity slider, or "Show photo under the drawing" to hide it.
   "Block areas off the plate" shades everything outside the plate and keeps drawings out of it. Plate size, left X and rear Y (default 280 mm, -5, 275) say where the plate sits in machine coordinates; adjust them if the dashed plate outline is off.
   "Choose photo file" lets you use any photo from the computer instead.

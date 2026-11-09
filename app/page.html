@@ -195,7 +195,7 @@ canvas{border-radius:2px;border-color:#3a3a40}
         <p class="hint">Scan with your phone camera (on the same Wi-Fi). If the page doesn't open, allow Python through the firewall, or type this address into the phone's browser: <code id="qrUrl" style="word-break:break-all"></code></p>
       </div>
       <div id="photoCtl" hidden style="margin-top:10px">
-        <div class="row"><button class="btn primary" id="bAuto">Align to plate corners</button><button class="btn" id="bAlign">Align to sheet corners</button><button class="btn" id="bPhotoClear">Remove photo</button></div>
+        <div class="row"><button class="btn primary" id="bAuto">Align to plate corners</button><button class="btn" id="bAlign">Align to sheet corners</button><button class="btn" id="bMeasure">Measure on photo</button><button class="btn" id="bPhotoClear">Remove photo</button></div>
         <div class="fields three" style="margin-top:10px">
           <label>Plate size (mm)<input type="number" id="plSize" value="280" step="1" min="100"></label>
           <label>Plate left X<input type="number" id="plX" value="-5" step="0.5"></label>
@@ -459,6 +459,7 @@ canvas{border-radius:2px;border-color:#3a3a40}
       <canvas id="alCv" width="760" height="520" style="width:760px;max-width:100%;height:auto;touch-action:none;cursor:grab;display:block;background:#000"></canvas>
       <canvas id="alMini" style="position:absolute;top:8px;right:8px;border:2px solid #ffcc00;border-radius:3px;background:#000;touch-action:none;cursor:crosshair"></canvas>
     </div>
+    <pre id="alMeas" hidden style="font:12px IBM Plex Mono,monospace;margin:8px 0 0;max-height:150px;overflow:auto;white-space:pre;background:var(--bg,#111);border:1px solid var(--line);border-radius:4px;padding:6px 8px"></pre>
     <div class="row" style="margin-top:8px;align-items:center">
       <button class="btn" id="alBack">&#9664; Back</button>
       <span id="alChips" style="display:inline-flex;gap:4px"></span>
@@ -467,7 +468,7 @@ canvas{border-radius:2px;border-color:#3a3a40}
       <button class="btn" id="alZm">&minus;</button><span id="alZl" style="min-width:48px;text-align:center;font-family:IBM Plex Mono,monospace;font-size:12px"></span><button class="btn" id="alZp">+</button>
     </div>
     <div class="row" style="margin-top:8px">
-      <button class="btn primary" id="alApply">Apply</button><button class="btn" id="alNext">Next guess</button><button class="btn" id="alRot">Rotate photo 90&deg;</button><button class="btn" id="alReset">Reset</button><button class="btn" id="alCancel">Cancel</button>
+      <button class="btn primary" id="alApply">Apply</button><button class="btn" id="alNext">Next guess</button><button class="btn" id="alRot">Rotate photo 90&deg;</button><button class="btn" id="alDel" hidden>Remove point</button><button class="btn" id="alCopy" hidden>Copy results</button><button class="btn" id="alReset">Reset</button><button class="btn" id="alCancel">Cancel</button>
     </div>
   </div>
 </div>
@@ -1897,7 +1898,7 @@ async function loadPhotoBlob(blob){
     const bmp=await createImageBitmap(blob,{imageOrientation:"from-image"});
     const sc=Math.min(1,2400/Math.max(bmp.width,bmp.height));
     phCv.width=Math.round(bmp.width*sc);phCv.height=Math.round(bmp.height*sc);phCv.getContext("2d").drawImage(bmp,0,0,phCv.width,phCv.height);
-    phStamp++;phReady=true;$("photoCtl").hidden=false;underCv=null;update();openAligner("plate",findPlate());
+    phStamp++;measInv=measFwd=null;phReady=true;$("photoCtl").hidden=false;underCv=null;update();openAligner("plate",findPlate());
   }catch(e){photoMsg("Couldn't read that photo: "+e.message)}
 }
 $("photoFile").addEventListener("change",e=>{const f=e.target.files[0];if(f)loadPhotoBlob(f);e.target.value=""});
@@ -1920,6 +1921,7 @@ $("photoOn").addEventListener("input",e=>{underOn=e.target.checked;update()});
 $("photoAlpha").addEventListener("input",e=>{underAlpha=e.target.value/100;update()});
 $("bPhotoClear").addEventListener("click",()=>{phReady=false;underCv=null;$("photoCtl").hidden=true;photoMsg("Photo removed.");update()});
 $("bAlign").addEventListener("click",()=>{if(phReady)openAligner("sheet")});
+$("bMeasure").addEventListener("click",()=>{if(!phReady)return;if(!measInv){photoMsg("Align the photo first (plate corners or sheet corners), then measure.");return}openAligner("measure")});
 
 function solveH(src,dst){
   const A=[];
@@ -1955,24 +1957,31 @@ function cornerList(){
           {n:"FRONT-RIGHT corner of the sheet (door side, right)",b:R(PAPER_W/2,-PAPER_H/2)},
           {n:"FRONT-LEFT corner of the sheet (door side, left)",b:R(-PAPER_W/2,-PAPER_H/2)}];
 }
+let measInv=null,measFwd=null;
+function b2p(x,y){const h=measFwd,w=h[6]*x+h[7]*y+1;return [(h[0]*x+h[1]*y+h[2])/w,(h[3]*x+h[4]*y+h[5])/w]}
+function p2b(u,v){const h=measInv,w=h[6]*u+h[7]*v+1;return [(h[0]*u+h[1]*v+h[2])/w,(h[3]*u+h[4]*v+h[5])/w]}
+function buildChips(n){const ch=$("alChips");ch.innerHTML="";for(let i=0;i<n;i++){const b=document.createElement("button");b.className="btn";b.textContent=String(i+1);b.style.minWidth="34px";b.addEventListener("click",()=>{alIdx=i;alVc=alPts[i].slice();alDraw()});ch.appendChild(b)}}
 let alIdx=0,alVc=[0,0],alZoom=5;const AL_W=760,AL_H=520;
 function alS0(){return Math.min(AL_W/phCv.width,AL_H/phCv.height)}
 function alS(){return alS0()*alZoom}
 function defaultBox(){const W=phCv.width,H=phCv.height;return [[.3,.3],[.7,.3],[.7,.7],[.3,.7]].map(p=>[p[0]*W,p[1]*H])}
 function openAligner(mode,pts){
-  alMode=mode||"sheet";alScale=1;alPts=(pts&&pts.length===4?pts:defaultBox()).map(p=>p.slice());alIdx=0;alVc=alPts[0].slice();
-  $("alRot").hidden=alMode!=="plate";$("alNext").hidden=alMode!=="plate";
+  alMode=mode||"sheet";alScale=1;const meas=alMode==="measure";
+  if(meas){const P=plateRect();alPts=[b2p(P.x+P.s/2,P.y-P.s/2)]}else alPts=(pts&&pts.length===4?pts:defaultBox()).map(p=>p.slice());
+  alIdx=0;alVc=alPts[0].slice();
+  $("alRot").hidden=alMode!=="plate";$("alNext").hidden=alMode!=="plate";$("alApply").hidden=meas;$("alReset").hidden=meas;$("alDel").hidden=!meas;$("alCopy").hidden=!meas;$("alMeas").hidden=!meas;
+  $("alCancel").textContent=meas?"Close":"Cancel";
   const mini=$("alMini");mini.width=150;mini.height=Math.round(150*phCv.height/phCv.width);mini.style.width="150px";mini.style.height=mini.height+"px";
-  const ch=$("alChips");ch.innerHTML="";[0,1,2,3].forEach(i=>{const b=document.createElement("button");b.className="btn";b.textContent=String(i+1);b.style.minWidth="34px";b.addEventListener("click",()=>{alIdx=i;alVc=alPts[i].slice();alDraw()});ch.appendChild(b)});
+  buildChips(alPts.length);
   $("aligner").hidden=false;alDraw();
 }
 function alDraw(){
-  const cv=$("alCv"),c=cv.getContext("2d"),s=alS(),cl=cornerList(),W=phCv.width,H=phCv.height;
+  const cv=$("alCv"),c=cv.getContext("2d"),s=alS(),meas=alMode==="measure",cl=meas?null:cornerList(),W=phCv.width,H=phCv.height;
   alPts[alIdx]=alVc.slice(); /* the active corner is always under the crosshair */
   c.setTransform(1,0,0,1,0,0);c.fillStyle="#000";c.fillRect(0,0,AL_W,AL_H);
   c.imageSmoothingEnabled=s<3;c.setTransform(s,0,0,s,AL_W/2-alVc[0]*s,AL_H/2-alVc[1]*s);c.drawImage(phCv,0,0);c.setTransform(1,0,0,1,0,0);
   const sp=p=>[AL_W/2+(p[0]-alVc[0])*s,AL_H/2+(p[1]-alVc[1])*s];
-  c.lineWidth=1.5;c.strokeStyle="rgba(255,204,0,.8)";c.beginPath();alPts.forEach((p,i)=>{const q=sp(p);i?c.lineTo(q[0],q[1]):c.moveTo(q[0],q[1])});c.closePath();c.stroke();
+  c.lineWidth=1.5;c.strokeStyle="rgba(255,204,0,.8)";c.beginPath();alPts.forEach((p,i)=>{const q=sp(p);i?c.lineTo(q[0],q[1]):c.moveTo(q[0],q[1])});if(alMode!=="measure")c.closePath();c.stroke();
   alPts.forEach((p,i)=>{if(i===alIdx)return;const q=sp(p);c.strokeStyle="#ff3b30";c.lineWidth=2;c.beginPath();c.arc(q[0],q[1],7,0,7);c.stroke();c.fillStyle="#ffcc00";c.font="bold 15px sans-serif";c.fillText(String(i+1),q[0]+10,q[1]-8)});
   /* fixed crosshair for the active corner */
   c.strokeStyle="#ffcc00";c.lineWidth=1;c.beginPath();c.moveTo(AL_W/2-40,AL_H/2);c.lineTo(AL_W/2-6,AL_H/2);c.moveTo(AL_W/2+6,AL_H/2);c.lineTo(AL_W/2+40,AL_H/2);c.moveTo(AL_W/2,AL_H/2-40);c.lineTo(AL_W/2,AL_H/2-6);c.moveTo(AL_W/2,AL_H/2+6);c.lineTo(AL_W/2,AL_H/2+40);c.stroke();
@@ -1984,10 +1993,25 @@ function alDraw(){
   mc.beginPath();mc.moveTo(alVc[0]*k-4,alVc[1]*k);mc.lineTo(alVc[0]*k+4,alVc[1]*k);mc.moveTo(alVc[0]*k,alVc[1]*k-4);mc.lineTo(alVc[0]*k,alVc[1]*k+4);mc.stroke();
   $("alZl").textContent=alZoom.toFixed(1)+"x";
   Array.from($("alChips").children).forEach((b,i)=>{b.className=i===alIdx?"btn primary":"btn"});
-  $("alStep").textContent="Corner "+(alIdx+1)+" of 4: "+cl[alIdx].n+". Drag the picture (or tap the small overview) until the crosshair is exactly on it. Dragging moves the point "+alZoom.toFixed(1)+"x slower than your finger, so it is easy to be precise. Then press Next corner."+(alMode==="plate"&&alIdx===0?" The starting points are only a guess.":"");
-  $("alNextC").textContent=alIdx<3?"Next corner \u25B6":"Done";
+  if(meas){measText();$("alNextC").textContent=alIdx<alPts.length-1?"Next point \u25B6":"Add point +";$("alDel").disabled=alPts.length<2}
+  else{$("alStep").textContent="Corner "+(alIdx+1)+" of 4: "+cl[alIdx].n+". Drag the picture (or tap the small overview) until the crosshair is exactly on it. Dragging moves the point "+alZoom.toFixed(1)+"x slower than your finger, so it is easy to be precise. Then press Next corner."+(alMode==="plate"&&alIdx===0?" The starting points are only a guess.":"");
+    $("alNextC").textContent=alIdx<3?"Next corner \u25B6":"Done"}
   $("alBack").disabled=alIdx===0;
 }
+let measLast="";
+function measText(){
+  const B=alPts.map(p=>p2b(p[0],p[1])),L=[];
+  $("alStep").textContent="Measure: drag the picture until the crosshair is on the spot you want, then press Add point to place the next one. Results are in mm on the plate surface (anything raised above it, like the toolhead, reads wrong).";
+  B.forEach((b,i)=>L.push("P"+(i+1)+"   X "+b[0].toFixed(1).padStart(7)+"   Y "+b[1].toFixed(1).padStart(7)));
+  let tot=0;
+  for(let i=1;i<B.length;i++){const dx=B[i][0]-B[i-1][0],dy=B[i][1]-B[i-1][1],d=Math.hypot(dx,dy);tot+=d;L.push("P"+i+" to P"+(i+1)+"   "+d.toFixed(2)+" mm   (dX "+dx.toFixed(1)+", dY "+dy.toFixed(1)+", "+(Math.atan2(dy,dx)*180/Math.PI).toFixed(1)+" deg)")}
+  if(B.length>2){L.push("Path length  "+tot.toFixed(2)+" mm");const dx=B[B.length-1][0]-B[0][0],dy=B[B.length-1][1]-B[0][1];L.push("P1 to P"+B.length+" straight  "+Math.hypot(dx,dy).toFixed(2)+" mm")}
+  for(let i=1;i<B.length-1;i++){const a=[B[i-1][0]-B[i][0],B[i-1][1]-B[i][1]],b=[B[i+1][0]-B[i][0],B[i+1][1]-B[i][1]],den=Math.hypot(a[0],a[1])*Math.hypot(b[0],b[1]);if(den>0)L.push("Angle at P"+(i+1)+"  "+(Math.acos(Math.max(-1,Math.min(1,(a[0]*b[0]+a[1]*b[1])/den)))*180/Math.PI).toFixed(1)+" deg")}
+  if(B.length>2){let ar=0;for(let i=0;i<B.length;i++){const p=B[i],q=B[(i+1)%B.length];ar+=p[0]*q[1]-q[0]*p[1]}L.push("Area (joining last to first)  "+(Math.abs(ar)/2).toFixed(0)+" mm2")}
+  measLast=L.join("\n");$("alMeas").textContent=measLast;
+}
+$("alDel").addEventListener("click",()=>{if(alPts.length<2)return;alPts.splice(alIdx,1);alIdx=Math.max(0,alIdx-1);alVc=alPts[alIdx].slice();buildChips(alPts.length);alDraw()});
+$("alCopy").addEventListener("click",()=>{try{navigator.clipboard.writeText(measLast)}catch(e){}});
 function alMove(dxs,dys){const s=alS();alVc[0]=Math.max(0,Math.min(phCv.width,alVc[0]-dxs/s));alVc[1]=Math.max(0,Math.min(phCv.height,alVc[1]-dys/s));alDraw()}
 (function(){
   const cv=$("alCv");let last=null;
@@ -2000,7 +2024,9 @@ function alMove(dxs,dys){const s=alS();alVc[0]=Math.max(0,Math.min(phCv.width,al
   mini.addEventListener("pointerdown",ev=>{md=true;mini.setPointerCapture(ev.pointerId);mset(ev)});mini.addEventListener("pointermove",ev=>{if(md)mset(ev)});mini.addEventListener("pointerup",()=>{md=false});
   document.addEventListener("keydown",ev=>{if($("aligner").hidden)return;const st=ev.shiftKey?10:1;let d=null;if(ev.key==="ArrowLeft")d=[st,0];else if(ev.key==="ArrowRight")d=[-st,0];else if(ev.key==="ArrowUp")d=[0,st];else if(ev.key==="ArrowDown")d=[0,-st];if(d){ev.preventDefault();alMove(d[0],d[1])}});
   $("alZp").addEventListener("click",()=>{alZoom=Math.min(16,alZoom*1.4);alDraw()});$("alZm").addEventListener("click",()=>{alZoom=Math.max(1,alZoom/1.4);alDraw()});
-  $("alNextC").addEventListener("click",()=>{if(alIdx<3){alIdx++;alVc=alPts[alIdx].slice();alDraw()}else $("alApply").click()});
+  $("alNextC").addEventListener("click",()=>{
+    if(alMode==="measure"){if(alIdx>=alPts.length-1){alPts.push(alVc.slice());buildChips(alPts.length)}alIdx=Math.min(alIdx+1,alPts.length-1);alVc=alPts[alIdx].slice();alDraw();return}
+    if(alIdx<3){alIdx++;alVc=alPts[alIdx].slice();alDraw()}else $("alApply").click()});
   $("alBack").addEventListener("click",()=>{if(alIdx>0){alIdx--;alVc=alPts[alIdx].slice();alDraw()}});
 })();
 /* re-align automatically when the sheet position changes (same four photo points, new bed coordinates) */
@@ -2016,6 +2042,7 @@ $("alApply").addEventListener("click",()=>{
   lastImgPts=alPts.map(p=>[p[0]/alScale,p[1]/alScale]);lastMode=alMode;if(alMode==="plate")savePrior(lastImgPts);
   const h=solveH(cl.map(x=>x.b),lastImgPts);
   if(!h){photoMsg("Those points don't make a valid quadrilateral. Reset and try again.");return}
+  measFwd=h;measInv=solveH(lastImgPts,cl.map(x=>x.b));
   underCv=buildUnder(h);underOn=true;$("photoOn").checked=true;$("aligner").hidden=true;
   if(alMode==="plate"){photoMsg("Photo aligned to the plate. Check that the dashed plate outline sits on the plate edges; if not, press Align to plate corners and adjust the corners, or change the plate size and position fields.");
   }else photoMsg("Photo aligned. If the drawing still looks shifted, press Align to sheet corners and nudge the points.");
@@ -2024,7 +2051,7 @@ $("alApply").addEventListener("click",()=>{
 ["plSize","plX","plY","plBlock"].forEach(id=>$(id).addEventListener("input",update));
 $("alRot").addEventListener("click",()=>{ /* turn the photo 90 degrees clockwise and re-detect the plate */
   const t=document.createElement("canvas");t.width=phCv.height;t.height=phCv.width;const c=t.getContext("2d");c.translate(t.width,0);c.rotate(Math.PI/2);c.drawImage(phCv,0,0);
-  phCv.width=t.width;phCv.height=t.height;phCv.getContext("2d").drawImage(t,0,0);phStamp++;openAligner("plate",findPlate());
+  phCv.width=t.width;phCv.height=t.height;phCv.getContext("2d").drawImage(t,0,0);phStamp++;measInv=measFwd=null;openAligner("plate",findPlate());
 });
 $("alNext").addEventListener("click",()=>{if(!plateGuesses.length)return;plateGuessIdx=(plateGuessIdx+1)%plateGuesses.length;const g=plateGuesses[plateGuessIdx];alPts=g.q.map(p=>p.slice());alIdx=0;alVc=alPts[0].slice();alDraw();$("alStep").textContent="Guess "+(plateGuessIdx+1)+" of "+plateGuesses.length+" ("+g.name+"). Press Next guess for another, or step through the corners and fine-tune each."});
 $("bAuto").addEventListener("click",()=>{if(phReady)openAligner("plate",findPlate())});
