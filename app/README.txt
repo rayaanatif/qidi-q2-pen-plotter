@@ -25,10 +25,10 @@ Bed photo (phone camera)
   1. In the app press "Use phone camera". A QR code appears.
   2. Scan it with your phone (phone and computer on the same Wi-Fi). If Windows asks, allow Python through the firewall (private networks).
   3. Open the printer door or lid, hold the phone above the bed with the whole build plate in view and the printer's REAR at the top of the picture, and take the photo.
-  4. The app proposes the four corners of the build plate (yellow points). Check them, drag any that are off using the zoom box (corners hidden under a big sheet usually need a nudge), rotate the photo if needed, then press Apply.
-  Buttons in the aligner: "Next guess" cycles through other starting boxes (your last confirmed corners come first), "Snap to edges" nudges the points onto straight edges, "Rotate photo 90" turns the photo.
+  4. A zoomed view opens with a small overview in the corner (the yellow box shows the zoomed area). For each of the four plate corners (rear-left, rear-right, front-right, front-left) drag the picture, or tap the overview, until the crosshair sits exactly on the corner. The point moves slower than your finger by the zoom factor (+ / - or the mouse wheel change the zoom; arrow keys nudge). Press Next corner. "Next guess" loads other starting positions, "Rotate photo 90" turns the photo.
   5. Auto-fit then finds the sheet on the plate from its own straight edges, at any position or angle, even with the toolhead or rail covering part of it, and fills in Paper on the bed (size, orientation, left edge, rear edge). If the sheet is turned, the green usable area is the biggest upright rectangle that fits inside it.
   6. The photo sits under the drawing in the bed preview. Use the opacity slider, or "Show photo under the drawing" to hide it.
   "Align by sheet corners" is the older manual method (tap the four sheet corners). "Choose photo file" lets you use any photo from the computer instead.
+  "Block areas off the plate" shades everything outside the plate and keeps drawings out of it.
   Plate size, left X and rear Y (default 280 mm, -5, 275) describe where the plate sits in machine coordinates; adjust them if the outline is off. If your sheet is darker than the plate, change "The sheet looks" to darker.
   Only the phone page and photo upload are reachable from your Wi-Fi, and only with the one-time code in the QR link.
