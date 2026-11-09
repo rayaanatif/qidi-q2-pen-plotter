@@ -1,0 +1,86 @@
+{
+ "plate_mm": [
+  264.0,
+  264.0,
+  3.0
+ ],
+ "origin": "front-left corner of plate, x right, y toward rear",
+ "marks_centres_mm": [
+  [
+   18,
+   50
+  ],
+  [
+   18,
+   130
+  ],
+  [
+   18,
+   210
+  ],
+  [
+   18,
+   250
+  ],
+  [
+   70,
+   250
+  ],
+  [
+   150,
+   250
+  ],
+  [
+   230,
+   250
+  ]
+ ],
+ "ring_radius": 4.0,
+ "cross_half": 6.5,
+ "line_width": 0.8,
+ "mark_height": 0.4,
+ "magnet_pockets_mm": [
+  [
+   40,
+   40
+  ],
+  [
+   40,
+   132
+  ],
+  [
+   40,
+   224
+  ],
+  [
+   132,
+   40
+  ],
+  [
+   132,
+   132
+  ],
+  [
+   132,
+   224
+  ],
+  [
+   224,
+   40
+  ],
+  [
+   224,
+   132
+  ],
+  [
+   224,
+   224
+  ]
+ ],
+ "paper_corner_mm": [
+  40.0,
+  234.0
+ ],
+ "stop_height": 1.2,
+ "colour_change_z": 3.0
+}
