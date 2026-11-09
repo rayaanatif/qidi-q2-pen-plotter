@@ -195,11 +195,17 @@ canvas{border-radius:2px;border-color:#3a3a40}
         <p class="hint">Scan with your phone camera (on the same Wi-Fi). If the page doesn't open, allow Python through the firewall, or type this address into the phone's browser: <code id="qrUrl" style="word-break:break-all"></code></p>
       </div>
       <div id="photoCtl" hidden style="margin-top:10px">
-        <div class="row"><button class="btn primary" id="bAlign">Align photo</button><button class="btn" id="bPhotoClear">Remove photo</button></div>
+        <div class="row"><button class="btn primary" id="bAuto">Auto-fit sheet</button><button class="btn" id="bAlign">Align by sheet corners</button><button class="btn" id="bPhotoClear">Remove photo</button></div>
+        <div class="fields three" style="margin-top:10px">
+          <label>Plate size (mm)<input type="number" id="plSize" value="280" step="1" min="100"></label>
+          <label>Plate left X<input type="number" id="plX" value="-5" step="0.5"></label>
+          <label>Plate rear Y<input type="number" id="plY" value="275" step="0.5"></label>
+        </div>
+        <label style="margin-top:8px">The sheet looks<select id="sheetTone"><option value="light">lighter than the plate</option><option value="dark">darker than the plate</option></select></label>
         <label style="flex-direction:row;align-items:center;gap:8px;margin:10px 0 0;color:var(--ink);font-size:13px"><input type="checkbox" id="photoOn" checked> Show photo under the drawing</label>
         <label style="margin-top:8px">Photo opacity<input type="range" id="photoAlpha" min="10" max="100" value="60"></label>
       </div>
-      <p class="hint" id="photoMsg">Take a photo straight down on the bed with the whole A4 sheet in view, then tap its four corners to line the photo up with the bed.</p>
+      <p class="hint" id="photoMsg">Take a photo from above with the printer\'s rear at the top of the picture and the whole plate in view. Auto-fit finds the plate, lines the photo up with the bed, then finds your sheet wherever and however it is placed.</p>
     </div>
     <div class="panel">
       <h2>Colour in filled areas</h2>
@@ -452,7 +458,7 @@ canvas{border-radius:2px;border-color:#3a3a40}
       <canvas id="alCv" style="max-width:100%;touch-action:none;cursor:crosshair;display:block"></canvas>
       <canvas id="alLoupe" width="150" height="150" style="position:absolute;top:8px;left:8px;border:2px solid var(--accent);border-radius:4px;pointer-events:none;background:#000" hidden></canvas>
     </div>
-    <div class="row" style="margin-top:10px"><button class="btn primary" id="alApply" disabled>Apply</button><button class="btn" id="alReset">Reset points</button><button class="btn" id="alCancel">Cancel</button></div>
+    <div class="row" style="margin-top:10px"><button class="btn primary" id="alApply" disabled>Apply</button><button class="btn" id="alRot">Rotate photo 90&deg;</button><button class="btn" id="alReset">Reset points</button><button class="btn" id="alCancel">Cancel</button></div>
   </div>
 </div>
 <div id="svgHold" aria-hidden="true"></div>
@@ -821,10 +827,17 @@ function build(items,o,isCal){
 /* ---------- preview ---------- */
 function css(v){return getComputedStyle(document.documentElement).getPropertyValue(v).trim()}
 /* usable area on the sheet (pen coordinates). With incOver the area runs past the front edge of the bed, down to the pen's front limit. */
+let SHEET_ANG=0; /* degrees, counter-clockwise, about the sheet centre; set by Auto-fit */
 function usable(o){
-  const pb=o.paperY-PAPER_H,front=o.offY+1;
-  const ylo=Math.max(pb+o.margin,o.incOver?front:o.margin),yhi=o.twoPass?o.paperY-o.margin:Math.min(o.paperY-o.margin,penReach(o));
-  return {x0:o.paperX+o.margin,x1:o.paperX+PAPER_W-o.margin,ylo:ylo,yhi:yhi};
+  let px=o.paperX,pw=PAPER_W,py=o.paperY,ph=PAPER_H,m=o.margin;
+  if(SHEET_ANG){ /* tilted sheet: use the biggest upright rectangle (same shape as the sheet) that fits inside it, minus the margin */
+    const a=Math.abs(SHEET_ANG)*Math.PI/180,c=Math.cos(a),sn=Math.sin(a),A=pw/2-m,B=ph/2-m,k=pw/ph;
+    const hh=Math.max(0,Math.min(A/(k*c+sn),B/(k*sn+c))),ww=k*hh,cx=px+pw/2,cy=py-ph/2;
+    px=cx-ww;pw=2*ww;py=cy+hh;ph=2*hh;m=0;
+  }
+  const pb=py-ph,front=o.offY+1;
+  const ylo=Math.max(pb+m,o.incOver?front:o.margin),yhi=o.twoPass?py-m:Math.min(py-m,penReach(o));
+  return {x0:px+m,x1:px+pw-m,ylo:ylo,yhi:yhi};
 }
 function visCol(h){const n=parseInt(h.slice(1),16),r=n>>16&255,g=n>>8&255,b=n&255,l=(0.2126*r+0.7152*g+0.0722*b)/255;if(l>=0.5)return h;const t=0.62;return "rgb("+Math.round(r+(255-r)*t)+","+Math.round(g+(255-g)*t)+","+Math.round(b+(255-b)*t)+")"}
 function drawBed(polys,o,errs,mesh,sty){
@@ -847,7 +860,9 @@ function drawBed(polys,o,errs,mesh,sty){
   /* whole A4 sheet (including the part hanging off the front of the bed) and its usable area */
   const u=usable(o);
   c.setLineDash([7*d,5*d]);c.strokeStyle=css("--muted");c.lineWidth=1.2*d;
-  c.strokeRect(X(o.paperX),Y(o.paperY),PAPER_W*k,PAPER_H*k);
+  if(SHEET_ANG){const a=SHEET_ANG*Math.PI/180,cx=o.paperX+PAPER_W/2,cy=o.paperY-PAPER_H/2,cc=Math.cos(a),ss=Math.sin(a);
+    c.beginPath();[[-1,1],[1,1],[1,-1],[-1,-1]].forEach((q,i)=>{const dx=q[0]*PAPER_W/2,dy=q[1]*PAPER_H/2,wx=cx+dx*cc-dy*ss,wy=cy+dx*ss+dy*cc;i?c.lineTo(X(wx),Y(wy)):c.moveTo(X(wx),Y(wy))});c.closePath();c.stroke()}
+  else c.strokeRect(X(o.paperX),Y(o.paperY),PAPER_W*k,PAPER_H*k);
   c.strokeStyle=css("--ok");c.strokeRect(X(u.x0),Y(u.yhi),(u.x1-u.x0)*k,Math.max(0,u.yhi-u.ylo)*k);
   c.setLineDash([]);
   if(mesh){c.strokeStyle=css("--accent");c.lineWidth=1.2*d;c.setLineDash([3*d,4*d]);
@@ -1576,6 +1591,7 @@ function drawSim(c,X,Y,d){
 $("paperSize").addEventListener("change",()=>{const v=$("paperSize").value;if(v!=="custom"){const a=v.split("x");$("paperW").value=a[0];$("paperH").value=a[1];update()}});
 ["paperW","paperH"].forEach(id=>$(id).addEventListener("input",()=>{const k=$("paperW").value+"x"+$("paperH").value;const o=Array.from($("paperSize").options).find(x=>x.value===k);$("paperSize").value=o?k:"custom"}));
 $("paperLand").addEventListener("input",update);
+["paperX","paperY","paperW","paperH","paperLand","paperSize"].forEach(id=>$(id).addEventListener("input",()=>{if(!AF_SETTING)SHEET_ANG=0}));
 $("paperSize").value=(()=>{const k=$("paperW").value+"x"+$("paperH").value;return Array.from($("paperSize").options).some(x=>x.value===k)?k:"custom"})();
 /* ---------- align, mirror, snap ---------- */
 function worldBox(it){const cs=itemCorners(it);let a=1e9,b=1e9,c=-1e9,d=-1e9;cs.forEach(q=>{a=Math.min(a,q[0]);b=Math.min(b,q[1]);c=Math.max(c,q[0]);d=Math.max(d,q[1])});return {x0:a,y0:b,x1:c,y1:d}}
@@ -1867,7 +1883,7 @@ async function loadPhotoBlob(blob){
     const bmp=await createImageBitmap(blob,{imageOrientation:"from-image"});
     const sc=Math.min(1,2400/Math.max(bmp.width,bmp.height));
     phCv.width=Math.round(bmp.width*sc);phCv.height=Math.round(bmp.height*sc);phCv.getContext("2d").drawImage(bmp,0,0,phCv.width,phCv.height);
-    phReady=true;$("photoCtl").hidden=false;underCv=null;update();openAligner();
+    phReady=true;$("photoCtl").hidden=false;underCv=null;update();openAligner("plate",findPlate());
   }catch(e){photoMsg("Couldn't read that photo: "+e.message)}
 }
 $("photoFile").addEventListener("change",e=>{const f=e.target.files[0];if(f)loadPhotoBlob(f);e.target.value=""});
@@ -1889,7 +1905,7 @@ $("bPhone").addEventListener("click",async()=>{
 $("photoOn").addEventListener("input",e=>{underOn=e.target.checked;update()});
 $("photoAlpha").addEventListener("input",e=>{underAlpha=e.target.value/100;update()});
 $("bPhotoClear").addEventListener("click",()=>{phReady=false;underCv=null;$("photoCtl").hidden=true;photoMsg("Photo removed.");update()});
-$("bAlign").addEventListener("click",()=>{if(phReady)openAligner()});
+$("bAlign").addEventListener("click",()=>{if(phReady)openAligner("sheet")});
 
 function solveH(src,dst){
   const A=[];
@@ -1914,17 +1930,21 @@ function buildUnder(h){
   }
   const uc=document.createElement("canvas");uc.width=uc.height=US;uc.getContext("2d").putImageData(out,0,0);return uc;
 }
-let alPts=[],alDrag=-1,alScale=1,lastImgPts=null;
+let alPts=[],alDrag=-1,alScale=1,lastImgPts=null,alMode="sheet",lastMode="sheet",AF_SETTING=false;
+function plateRect(){const s=parseFloat($("plSize").value)||280,x=parseFloat($("plX").value),y=parseFloat($("plY").value);return {x:isFinite(x)?x:-5,y:isFinite(y)?y:275,s:s}}
 function cornerList(){
+  if(alMode==="plate"){const P=plateRect();return [{n:"REAR-LEFT corner of the build plate",b:[P.x,P.y]},{n:"REAR-RIGHT corner of the build plate",b:[P.x+P.s,P.y]},{n:"FRONT-RIGHT corner of the build plate",b:[P.x+P.s,P.y-P.s]},{n:"FRONT-LEFT corner of the build plate",b:[P.x,P.y-P.s]}]}
   const o=readOpts(),pX=o.paperX,pY=o.paperY;
   return [{n:"REAR-LEFT corner of the sheet (back of the printer, left side)",b:[pX,pY]},
           {n:"REAR-RIGHT corner of the sheet (back of the printer, right side)",b:[pX+PAPER_W,pY]},
           {n:"FRONT-RIGHT corner of the sheet (door side, right)",b:[pX+PAPER_W,pY-PAPER_H]},
           {n:"FRONT-LEFT corner of the sheet (door side, left)",b:[pX,pY-PAPER_H]}];
 }
-function openAligner(){
-  alPts=[];const cv=$("alCv");alScale=Math.min(1,1000/phCv.width);
+function openAligner(mode,pts){
+  alMode=mode||"sheet";alPts=[];const cv=$("alCv");alScale=Math.min(1,1000/phCv.width);
   cv.width=Math.round(phCv.width*alScale);cv.height=Math.round(phCv.height*alScale);
+  if(pts)alPts=pts.map(p=>[p[0]*alScale,p[1]*alScale]);
+  $("alRot").hidden=alMode!=="plate";
   $("aligner").hidden=false;alDraw();
 }
 function alDraw(){
@@ -1934,7 +1954,8 @@ function alDraw(){
   alPts.forEach((p,i)=>{c.strokeStyle="#ff3b30";c.lineWidth=2;c.beginPath();c.arc(p[0],p[1],8,0,7);c.stroke();
     c.beginPath();c.moveTo(p[0]-14,p[1]);c.lineTo(p[0]+14,p[1]);c.moveTo(p[0],p[1]-14);c.lineTo(p[0],p[1]+14);c.stroke();
     c.fillStyle="#ffcc00";c.font="bold 18px sans-serif";c.fillText(String(i+1),p[0]+12,p[1]-10)});
-  $("alStep").textContent=alPts.length<4?("Click point "+(alPts.length+1)+" of 4: the "+cl[alPts.length].n+". Assumes the A4 sheet is upright (portrait) as set in Paper on the bed."):"All four points are set. Drag any point to fine-tune using the zoom box, then press Apply.";
+  if(alMode==="plate"&&alPts.length===4)$("alStep").textContent="Check the four yellow points sit on the corners of the build plate (printer rear at the top). Drag any that are off, then press Apply. Rotate the photo if the printer's rear is not at the top.";
+  else $("alStep").textContent=alPts.length<4?("Click point "+(alPts.length+1)+" of 4: the "+cl[alPts.length].n+". Assumes the A4 sheet is upright (portrait) as set in Paper on the bed."):"All four points are set. Drag any point to fine-tune using the zoom box, then press Apply.";
   $("alApply").disabled=alPts.length<4;
 }
 function alPos(ev){const cv=$("alCv"),r=cv.getBoundingClientRect();return [(ev.clientX-r.left)*cv.width/r.width,(ev.clientY-r.top)*cv.height/r.height]}
@@ -1955,19 +1976,121 @@ $("alCv").addEventListener("pointerleave",()=>{if(alDrag<0)alLoupe([0,0],false)}
 /* re-align automatically when the sheet position changes (same four photo points, new bed coordinates) */
 let reTimer=null;
 ["paperX","paperY","paperW","paperH","paperLand"].forEach(id=>$(id).addEventListener("input",()=>{
-  if(!lastImgPts||!phReady)return;clearTimeout(reTimer);
+  if(!lastImgPts||!phReady||lastMode!=="sheet")return;clearTimeout(reTimer);
   reTimer=setTimeout(()=>{const h=solveH(cornerList().map(x=>x.b),lastImgPts);if(h){underCv=buildUnder(h);update();photoMsg("Photo re-aligned to the new sheet position.")}},250);
 }));
 $("alReset").addEventListener("click",()=>{alPts=[];alDraw()});
 $("alCancel").addEventListener("click",()=>{$("aligner").hidden=true});
 $("alApply").addEventListener("click",()=>{
   if(alPts.length<4)return;const cl=cornerList();
-  lastImgPts=alPts.map(p=>[p[0]/alScale,p[1]/alScale]);
+  lastImgPts=alPts.map(p=>[p[0]/alScale,p[1]/alScale]);lastMode=alMode;
   const h=solveH(cl.map(x=>x.b),lastImgPts);
   if(!h){photoMsg("Those points don't make a valid quadrilateral. Reset and try again.");return}
   underCv=buildUnder(h);underOn=true;$("photoOn").checked=true;$("aligner").hidden=true;
-  photoMsg("Photo aligned. If the drawing still looks shifted, press Align photo and nudge the points.");update();
+  if(alMode==="plate"){const r=findSheet(h);
+    if(r.err)photoMsg("Photo aligned to the plate. "+r.err+" Set the sheet by hand, or use Align by sheet corners.");
+    else{applySheet(r);photoMsg(r.msg)}
+  }else photoMsg("Photo aligned. If the drawing still looks shifted, press Align by sheet corners and nudge the points.");
+  update();
 });
+$("alRot").addEventListener("click",()=>{ /* turn the photo 90 degrees clockwise and re-detect the plate */
+  const t=document.createElement("canvas");t.width=phCv.height;t.height=phCv.width;const c=t.getContext("2d");c.translate(t.width,0);c.rotate(Math.PI/2);c.drawImage(phCv,0,0);
+  phCv.width=t.width;phCv.height=t.height;phCv.getContext("2d").drawImage(t,0,0);openAligner("plate",findPlate());
+});
+$("bAuto").addEventListener("click",()=>{if(phReady)openAligner("plate",findPlate())});
+
+/* ---------- auto-fit: find the plate in the photo, then the sheet on the plate ---------- */
+function otsu(g,n){const h=new Array(256).fill(0);for(let i=0;i<n;i++)h[g[i]]++;let sum=0;for(let i=0;i<256;i++)sum+=i*h[i];
+  let wB=0,sB=0,best=0,th=128;for(let t=0;t<256;t++){wB+=h[t];if(!wB)continue;const wF=n-wB;if(!wF)break;sB+=t*h[t];const mB=sB/wB,mF=(sum-sB)/wF,v=wB*wF*(mB-mF)*(mB-mF);if(v>best){best=v;th=t}}return th}
+function bigBlob(mask,W,H,minFrac,unite){ /* largest 4-connected blob (or all blobs above minFrac when unite); returns pixel list */
+  const seen=new Uint8Array(W*H),all=[];let best=null;
+  for(let i=0;i<W*H;i++){if(!mask[i]||seen[i])continue;const st=[i],px=[];seen[i]=1;
+    while(st.length){const p=st.pop();px.push(p);const x=p%W,y=(p/W)|0;
+      if(x>0&&mask[p-1]&&!seen[p-1]){seen[p-1]=1;st.push(p-1)}if(x<W-1&&mask[p+1]&&!seen[p+1]){seen[p+1]=1;st.push(p+1)}
+      if(y>0&&mask[p-W]&&!seen[p-W]){seen[p-W]=1;st.push(p-W)}if(y<H-1&&mask[p+W]&&!seen[p+W]){seen[p+W]=1;st.push(p+W)}}
+    if(!best||px.length>best.length)best=px;all.push(px)}
+  if(!best||best.length<minFrac*W*H)return null;
+  if(unite){ /* every blob of useful size (a sheet can split the plate into pieces) */
+    const u=[];all.forEach(b=>{if(b===best||b.length>=0.005*W*H)b.forEach(p=>u.push(p))});return u}
+  return best;
+}
+function hull(pts){pts=pts.slice().sort((a,b)=>a[0]-b[0]||a[1]-b[1]);const cr=(o,a,b)=>(a[0]-o[0])*(b[1]-o[1])-(a[1]-o[1])*(b[0]-o[0]);
+  const lo=[];for(const p of pts){while(lo.length>1&&cr(lo[lo.length-2],lo[lo.length-1],p)<=0)lo.pop();lo.push(p)}
+  const up=[];for(let i=pts.length-1;i>=0;i--){const p=pts[i];while(up.length>1&&cr(up[up.length-2],up[up.length-1],p)<=0)up.pop();up.push(p)}
+  lo.pop();up.pop();return lo.concat(up)}
+function blobHull(px,W,sc){ /* hull of the blob's boundary-ish pixels (every pixel is fine: subsample by row extremes) */
+  const rows=new Map();px.forEach(p=>{const x=p%W,y=(p/W)|0,r=rows.get(y);if(!r)rows.set(y,[x,x]);else{if(x<r[0])r[0]=x;if(x>r[1])r[1]=x}});
+  const pts=[];rows.forEach((r,y)=>{pts.push([r[0],y]);pts.push([r[1]+1,y+1])});return hull(pts)}
+function findPlate(){ /* returns 4 photo points [RL,RR,FR,FL] (full-res px) or null */
+  const sc=Math.min(1,420/Math.max(phCv.width,phCv.height)),W=Math.round(phCv.width*sc),H=Math.round(phCv.height*sc);
+  const t=document.createElement("canvas");t.width=W;t.height=H;const c=t.getContext("2d");c.drawImage(phCv,0,0,W,H);const d=c.getImageData(0,0,W,H).data;
+  const g=new Uint8Array(W*H);for(let i=0;i<W*H;i++)g[i]=(0.2126*d[i*4]+0.7152*d[i*4+1]+0.0722*d[i*4+2])|0;
+  const th=otsu(g,W*H);let best=null;
+  const lowP=[],highP=[];for(let i=0;i<W*H;i++)(g[i]<=th?lowP:highP).push(g[i]);
+  const ths=[th];if(lowP.length>500)ths.push(otsu(Uint8Array.from(lowP),lowP.length));if(highP.length>500)ths.push(otsu(Uint8Array.from(highP),highP.length));
+  for(const cand of ths.flatMap(t=>[[true,t],[false,t]])){
+    const dark=cand[0],tt=cand[1];
+    const m=new Uint8Array(W*H);for(let i=0;i<W*H;i++)m[i]=(dark?g[i]<=tt:g[i]>tt)?1:0;
+    const b=bigBlob(m,W,H,0.01,true);if(!b)continue;const hl=hull(blobHull(b,W,sc).map(p=>p.slice()));
+    let ha=0;for(let i=0;i<hl.length;i++){const p=hl[i],q=hl[(i+1)%hl.length];ha+=p[0]*q[1]-q[0]*p[1]}ha=Math.abs(ha)/2;
+    let mx=0,my=0;b.forEach(p=>{mx+=p%W;my+=(p/W|0)});mx/=b.length;my/=b.length;
+    const touch=hl.filter(p=>p[0]<=1||p[1]<=1||p[0]>=W-1||p[1]>=H-1).length;
+    const score=ha*(1-Math.hypot(mx/W-.5,my/H-.5))*(touch>2?0.25:1)*(ha/(W*H)<0.85?1:0.3)*(dark?1.15:1);
+    if(!best||score>best.score)best={score:score,hl:hl};
+  }
+  if(!best)return null;const hl=best.hl;
+  const pick=f=>hl.reduce((a,p)=>f(p)>f(a)?p:a,hl[0]);
+  const tl=pick(p=>-(p[0]+p[1])),tr=pick(p=>p[0]-p[1]),br=pick(p=>p[0]+p[1]),bl=pick(p=>-p[0]+p[1]);
+  return [tl,tr,br,bl].map(p=>[p[0]/sc,p[1]/sc]);
+}
+function findSheet(h){ /* h maps bed mm -> photo px. Looks at the plate area (plus a strip in front) in top-down view, 1 px = 1 mm */
+  const P=plateRect(),M=30,X0=Math.floor(P.x-M),X1=Math.ceil(P.x+P.s+M),Y1=Math.ceil(P.y+M),Y0=Math.floor(P.y-P.s-M),W=X1-X0,H=Y1-Y0;
+  const src=phCv.getContext("2d").getImageData(0,0,phCv.width,phCv.height).data,PW=phCv.width,PH=phCv.height;
+  const g=new Uint8Array(W*H),ok=new Uint8Array(W*H);
+  for(let j=0;j<H;j++)for(let i=0;i<W;i++){const bx=X0+i+.5,by=Y1-j-.5,w=h[6]*bx+h[7]*by+1,u=(h[0]*bx+h[1]*by+h[2])/w,v=(h[3]*bx+h[4]*by+h[5])/w;
+    if(u>=1&&v>=1&&u<PW-2&&v<PH-2){const k=((v|0)*PW+(u|0))*4;g[j*W+i]=(0.2126*src[k]+0.7152*src[k+1]+0.0722*src[k+2])|0;ok[j*W+i]=1}}
+  /* threshold only on the plate itself (not the strip), so the table does not decide it */
+  const inPlate=[];for(let j=0;j<H;j++)for(let i=0;i<W;i++)if(ok[j*W+i]&&Y1-j-.5>=P.y-P.s&&Y1-j-.5<=P.y&&X0+i+.5>=P.x&&X0+i+.5<=P.x+P.s)inPlate.push(g[j*W+i]);
+  if(inPlate.length<2000)return {err:"The photo doesn't cover enough of the plate."};
+  const tmp=Uint8Array.from(inPlate),th=otsu(tmp,tmp.length),light=$("sheetTone").value==="light";
+  const m=new Uint8Array(W*H);for(let i=0;i<W*H;i++)m[i]=ok[i]&&(light?g[i]>th:g[i]<=th)?1:0;
+  /* tidy: a 3x3 majority pass to drop speckle */
+  const m2=new Uint8Array(W*H);for(let j=1;j<H-1;j++)for(let i=1;i<W-1;i++){let s=0;for(let a=-1;a<=1;a++)for(let b=-1;b<=1;b++)s+=m[(j+a)*W+i+b];m2[j*W+i]=s>=5?1:0}
+  const blob=bigBlob(m2,W,H,0.03);if(!blob)return {err:"Couldn't find a sheet that stands out from the plate."};
+  const pts=blobHull(blob,W,1).map(p=>[p[0]+X0,Y1-p[1]]); /* bed mm */
+  /* minimum-area rectangle over hull edge directions */
+  let best=null;for(let i=0;i<pts.length;i++){const p=pts[i],q=pts[(i+1)%pts.length],a=Math.atan2(q[1]-p[1],q[0]-p[0]),c=Math.cos(a),s=Math.sin(a);
+    let u0=1e9,u1=-1e9,v0=1e9,v1=-1e9;pts.forEach(r=>{const u=r[0]*c+r[1]*s,v=-r[0]*s+r[1]*c;u0=Math.min(u0,u);u1=Math.max(u1,u);v0=Math.min(v0,v);v1=Math.max(v1,v)});
+    const ar=(u1-u0)*(v1-v0);if(!best||ar<best.ar)best={ar:ar,a:a,c:c,s:s,u0:u0,u1:u1,v0:v0,v1:v1}}
+  const uw=best.u1-best.u0,vw=best.v1-best.v0,cu=(best.u0+best.u1)/2,cv=(best.v0+best.v1)/2;
+  let cx=cu*best.c-cv*best.s,cy=cu*best.s+cv*best.c,w=uw,hgt=vw,ang=best.a*180/Math.PI;
+  /* fold the angle into -45..45 so w runs along the sheet's "x" axis */
+  while(ang>45){ang-=90;[w,hgt]=[hgt,w]}while(ang<=-45){ang+=90;[w,hgt]=[hgt,w]}
+  const o=readOpts(),lo=Math.min(w,hgt),hi=Math.max(w,hgt);
+  const noms=Array.from($("paperSize").options).map(op=>op.value.split("x").map(Number)).filter(v=>v.length===2&&v[0]>0&&v[1]>0).map(v=>[Math.min(v[0],v[1]),Math.max(v[0],v[1])]);
+  noms.push([Math.min(o.paperW,o.paperH),Math.max(o.paperW,o.paperH)]);
+  const nm=noms.map(v=>({v:v,e:Math.abs(lo-v[0])+Math.abs(hi-v[1])})).filter(q=>Math.abs(lo-q.v[0])<16&&Math.abs(hi-q.v[1])<16).sort((p,q)=>p.e-q.e)[0];
+  let land=w>hgt,PWn,PHn,custom=false;
+  if(nm){const nomA=nm.v[0],nomB=nm.v[1];PWn=land?nomB:nomA;PHn=land?nomA:nomB}
+  else{PWn=Math.round(w);PHn=Math.round(hgt);custom=true}
+  const clipped=!custom&&Math.abs(Math.abs(ang)) <3&&(Y0+3>=cy-hgt/2);
+  /* a sheet hanging off the front of the plate is cut short at the strip: trust the rear edge and the nominal size */
+  if(!custom&&PHn>hgt+4&&Math.abs(ang)<3){cy=cy+hgt/2-PHn/2}
+  return {cx:cx,cy:cy,w:PWn,h:PHn,ang:ang,land:land,custom:custom,measured:[w,hgt],
+    msg:"Found the sheet: "+PWn.toFixed(0)+" x "+PHn.toFixed(0)+" mm"+(Math.abs(ang)>=0.5?", turned "+ang.toFixed(1)+"°":", square to the bed")+" (measured "+w.toFixed(0)+" x "+hgt.toFixed(0)+"). The usable area is shown in green"+(Math.abs(ang)>=0.5?"; for a turned sheet it is the biggest upright rectangle that fits inside it":"")+". If the sheet outline looks wrong, set the numbers by hand."};
+}
+function applySheet(r){
+  AF_SETTING=true;
+  const portrait=Math.min(r.w,r.h),long=Math.max(r.w,r.h);
+  if(r.custom){$("paperSize").value="custom";$("paperW").value=Math.round(r.w);$("paperH").value=Math.round(r.h);$("paperLand").checked=false}
+  else{const key=Math.min(r.w,r.h)+"x"+Math.max(r.w,r.h),op=Array.from($("paperSize").options).find(x=>{const v=x.value.split("x").map(Number);return v.length===2&&Math.abs(Math.min(v[0],v[1])-Math.min(r.w,r.h))<.5&&Math.abs(Math.max(v[0],v[1])-Math.max(r.w,r.h))<.5});
+    if(op){$("paperSize").value=op.value;$("paperW").value=Math.min(r.w,r.h);$("paperH").value=Math.max(r.w,r.h)}
+    $("paperLand").checked=r.land}
+  $("paperX").value=(r.cx-r.w/2).toFixed(1);$("paperY").value=(r.cy+r.h/2).toFixed(1);
+  SHEET_ANG=Math.abs(r.ang)<0.75?0:r.ang;
+  ["paperSize","paperW","paperH","paperLand","paperX","paperY"].forEach(id=>$(id).dispatchEvent(new Event("input",{bubbles:true})));
+  AF_SETTING=false;
+}
 
 $("svgText").value=SAMPLE;loadText(SAMPLE,"sample drawing",true);histBtn();
 setMsg("note","Sample drawing loaded (100 mm test pattern). Load your own SVG to replace it.");

@@ -12,7 +12,7 @@ Pen plotting needs one cfg file on the printer (`plotter.cfg`, included from `pr
 - Paper sizes and presets, with offsets and positions. Filled regions as outline plus hatch fill. Tone fill turns different shades into different crosshatch densities.
 - Whole-page mode: plots the area the pen can reach, you turn the sheet 180 degrees, and it plots the rest.
 - Multi-pen layers, plot simulation, undo and redo, project save and load.
-- Bed photo: scan a QR code, take a picture of your print bed with your phone, pick the four page corners and it sits under your drawing so you can place things exactly.
+- Bed photo: scan a QR code, take a picture of your print bed with your phone, confirm the plate corners and Auto-fit finds your sheet at any position or angle and sits the photo under your drawing so you can place things exactly.
 - Upload G-code, run `PLOT_MESH`, start and cancel a plot, straight from the app (local helper app only).
 - A Cutter tab with the planned settings. It is a scaffold: it does not generate cutting G-code yet.
 

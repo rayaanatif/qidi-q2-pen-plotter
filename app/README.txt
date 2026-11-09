@@ -24,8 +24,10 @@ Workflow
 Bed photo (phone camera)
   1. In the app press "Use phone camera". A QR code appears.
   2. Scan it with your phone (phone and computer on the same Wi-Fi). If Windows asks, allow Python through the firewall (private networks).
-  3. Open the printer door or lid, hold the phone level above the middle of the bed with the whole A4 sheet in view, and take the photo.
-  4. The photo appears on the computer. Click the four corners of the sheet in the order shown (rear-left, rear-right, front-right, front-left). Drag a point to fine-tune using the zoom box, then press Apply.
-  5. The photo now sits under the drawing in the bed preview. Use the opacity slider, or "Show photo under the drawing" to hide it.
-  The sheet position comes from "Paper on the bed" (left edge X, rear edge Y). "Choose photo file" lets you use any photo from the computer instead.
+  3. Open the printer door or lid, hold the phone above the bed with the whole build plate in view and the printer's REAR at the top of the picture, and take the photo.
+  4. The app proposes the four corners of the build plate (yellow points). Check them, drag any that are off using the zoom box (corners hidden under a big sheet usually need a nudge), rotate the photo if needed, then press Apply.
+  5. Auto-fit then finds the sheet on the plate, at any position or angle, and fills in Paper on the bed (size, orientation, left edge, rear edge). If the sheet is turned, the green usable area is the biggest upright rectangle that fits inside it.
+  6. The photo sits under the drawing in the bed preview. Use the opacity slider, or "Show photo under the drawing" to hide it.
+  "Align by sheet corners" is the older manual method (tap the four sheet corners). "Choose photo file" lets you use any photo from the computer instead.
+  Plate size, left X and rear Y (default 280 mm, -5, 275) describe where the plate sits in machine coordinates; adjust them if the outline is off. If your sheet is darker than the plate, change "The sheet looks" to darker.
   Only the phone page and photo upload are reachable from your Wi-Fi, and only with the one-time code in the QR link.
