@@ -276,6 +276,8 @@ nav{align-items:stretch}
         <button class="btn" id="bPhone">Use phone camera</button>
         <label class="btn" style="cursor:pointer">Choose photo file<input type="file" id="photoFile" accept="image/*" style="display:none"></label>
       </div>
+      <label style="flex-direction:row;align-items:center;gap:8px;margin:10px 0 0;color:var(--ink);font-size:13px"><input type="checkbox" id="refSheet"> Using alignment reference sheet</label>
+      <p class="hint" id="refHint" hidden style="margin:4px 0 0">Tape the printed 280 mm reference sheet flat on the plate with its corner on the plate's rear-left corner. The app finds its 12 printed rings in the photo and aligns from them, no pen marks needed. Plate size and position are in the fields below.</p>
       <div id="qrBox" hidden style="margin-top:10px">
         <canvas id="qrCv" width="200" height="200" style="width:200px;height:200px;max-width:100%;border:1px solid var(--line);border-radius:4px;background:#fff"></canvas>
         <p class="hint">Scan with your phone camera (on the same Wi-Fi). If the page doesn't open, allow Python through the firewall, or type this address into the phone's browser: <code id="qrUrl" style="word-break:break-all"></code></p>
@@ -664,7 +666,7 @@ document.querySelectorAll("[data-copy]").forEach(b=>b.addEventListener("click",(
 
 /* ---------- settings memory (optional) ---------- */
 const IDS=["fillMode","fillDark","fillT1","fillT2","fillT3","fillT4","fillS1","fillS2","fillS3","fillS4","fillGap","fillAngle","paperX","paperY","paperW","paperH","penCount","margin","fitW","fitH","orgX","orgY","offX","offY","penYMax","zDraw","zLift","zPress","tol","fDraw","fTravel","fZ","penW","penOv","lineOv","regIns"];
-const CBS=["lwUse","autoGap","lwPrev"];
+const CBS=["lwUse","autoGap","lwPrev","refSheet"];
 try{const s=JSON.parse(localStorage.getItem("q2plot")||"{}");IDS.forEach(i=>{if(s[i]!==undefined)$(i).value=s[i]});CBS.forEach(i=>{if(s[i]!==undefined)$(i).checked=!!s[i]})}catch(e){}
 function saveSettings(){try{const s={};IDS.forEach(i=>s[i]=$(i).value);CBS.forEach(i=>s[i]=$(i).checked);localStorage.setItem("q2plot",JSON.stringify(s))}catch(e){}}
 
@@ -2506,8 +2508,13 @@ function findRegCandidates(){
     const keep=cands.filter(c=>c.size>med*0.5&&c.size<med*2);cands.length=0;keep.forEach(c=>cands.push(c))}
   return cands.slice(0,14);
 }
+function refOn(){return !!$("refSheet")&&$("refSheet").checked}
+/* printed reference sheet (hardware/registration-plate/q2_regsheet_*.pdf): 280 mm square, rings at these sheet positions (mm from the sheet's left and FRONT edges).
+   The sheet's rear-left corner sits on the plate's rear-left corner. First four = the four corner rings (seed rectangle); the rest are on the left, rear and right strips, clear of an A4 sheet pushed into the rear-left stop. */
+const SHEET_N=280,SHEET_MARKS=[[18,14],[SHEET_N-14,14],[SHEET_N-14,SHEET_N-14],[18,SHEET_N-14],[18,60],[18,110],[18,190],[70,SHEET_N-14],[150,SHEET_N-14],[SHEET_N-14,60],[SHEET_N-14,110],[SHEET_N-14,190]];
+function sheetLayout(){const P=plateRect();return SHEET_MARKS.map(m=>[P.x+m[0],P.y-(SHEET_N-m[1])])}
 function detectReg(){
-  const o=readOpts(),L=(lastRegLayout&&lastRegLayout.length>=5)?lastRegLayout:regLayout(o);
+  const o=readOpts(),L=refOn()?sheetLayout():((lastRegLayout&&lastRegLayout.length>=5)?lastRegLayout:regLayout(o));
   const cands=findRegCandidates(),n=cands.length,W=phCv.width,H=phCv.height,diag=Math.hypot(W,H);
   const info={cands:n,matched:0,L:L};window.__reg=info;
   if(n<5)return null;
@@ -2539,21 +2546,33 @@ function detectReg(){
   const hi=homLS(pr.map(p=>p[1]),pr.map(p=>p[0]));if(!hi)return null;
   let se=0;pr.forEach(p=>{const q=hApply(hi,p[1][0],p[1][1]);se+=Math.pow(q[0]-p[0][0],2)+Math.pow(q[1]-p[0][1],2)});
   const rms=Math.sqrt(se/pr.length);info.matched=pr.length;info.rms=rms;
-  if(rms>1.2||pr.length<5)return null;
+  if(rms>(refOn()?2.5:1.2)||pr.length<(refOn()?8:5))return null; /* reference sheet: need most of its 12 rings, a few visible ones can fit a wrong but self-consistent solution */
+  if(refOn()){ /* reject if the rings that were seen are badly spread (e.g. only two strips visible): the plate corners would be a wild extrapolation */
+    const C=plateRect(),cs=[[C.x,C.y],[C.x+C.s,C.y],[C.x+C.s,C.y-C.s],[C.x,C.y-C.s]],base=cs.map(c=>hApply(h,c[0],c[1])),
+      ppm=Math.hypot(base[0][0]-base[1][0],base[0][1]-base[1][1])/C.s;let seed=12345;const rnd=()=>{seed=(seed*1664525+1013904223)>>>0;return seed/4294967296-0.5};
+    let worst=0;for(let t=0;t<12;t++){const hp=homLS(pr.map(q=>q[0]),pr.map(q=>[q[1][0]+rnd()*3.4,q[1][1]+rnd()*3.4])); /* about 1 px sigma */
+      if(!hp){worst=1e9;break}cs.forEach((c,i)=>{const q=hApply(hp,c[0],c[1]);worst=Math.max(worst,Math.hypot(q[0]-base[i][0],q[1]-base[i][1])/ppm)})}
+    info.spread=worst;if(worst>2.5)return null;
+    /* a real top-down photo is never mirrored and never behind the camera: reject flipped solutions (the layout is left-right symmetric, so a mirrored fit can match perfectly) */
+    const sa=P=>P.reduce((s,q,i)=>{const r=P[(i+1)%P.length];return s+q[0]*r[1]-r[0]*q[1]},0);
+    if(cs.some(c=>h[6]*c[0]+h[7]*c[1]+1<=0)||sa(base)*sa(cs)>=0){info.flipped=true;return null}}
   return {h:h,hi:hi,n:pr.length,rms:rms,pairs:pr};
 }
 function regAuto(silent){
   if(!phReady)return false;
   let r=null;try{r=detectReg()}catch(e){console.error(e)}
-  if(!r){if(!silent)photoMsg("Couldn't find the registration marks in this photo. They need to be drawn with a dark pen (Make photo alignment marks), all four corner marks in view and not covered by the toolhead or your hand. Use the plate-corner alignment instead, or retake the photo.");return false}
+  if(!r){if(!silent&&refOn())photoMsg("Couldn't find the reference sheet's rings. Check that the sheet is flat and fully in view (at least 8 of its 12 rings, not covered by paper, the toolhead or glare), that the printer is parked out of the way, and that the plate size and position fields are right. Or use Align to plate corners.");
+  else if(!silent)photoMsg("Couldn't find the registration marks in this photo. They need to be drawn with a dark pen (Make photo alignment marks), all four corner marks in view and not covered by the toolhead or your hand. Use the plate-corner alignment instead, or retake the photo.");return false}
   const P=plateRect();
   lastImgPts=[[P.x,P.y],[P.x+P.s,P.y],[P.x+P.s,P.y-P.s],[P.x,P.y-P.s]].map(b=>hApply(r.h,b[0],b[1]));lastMode="reg";
   measFwd=r.h;measInv=r.hi;underCv=buildUnder(r.h);underOn=true;$("photoOn").checked=true;$("aligner").hidden=true;
-  photoMsg("Aligned automatically from "+r.n+" alignment marks (typical error "+r.rms.toFixed(2)+" mm). Check that the dashed plate outline sits on the plate edges; the further a spot is from the marks, the less exact it is.");
+  photoMsg("Aligned automatically from "+r.n+(refOn()?" reference-sheet rings":" alignment marks")+" (typical error "+r.rms.toFixed(2)+" mm). Check that the dashed plate outline sits on the plate edges; the further a spot is from the marks, the less exact it is.");
   update();return true;
 }
 $("bRegFind").addEventListener("click",()=>{if(phReady)regAuto(false)});
-window.__q2={layout:()=>lastRegLayout,fwd:()=>measFwd,reset:()=>{measFwd=measInv=null;window.__reg=null}}; /* test hook */
+setTimeout(()=>{$("refHint").hidden=!refOn()},0);
+$("refSheet").addEventListener("change",()=>{$("refHint").hidden=!refOn();$("bRegFind").textContent=refOn()?"Align from reference sheet":"Auto-align from marks";if(phReady)regAuto(false)});
+window.__q2={sheet:()=>sheetLayout(),layout:()=>lastRegLayout,fwd:()=>measFwd,reset:()=>{measFwd=measInv=null;window.__reg=null}}; /* test hook */
 
 /* printable version of the alignment marks (true size SVG for the sheet size set under Sheet and paper) */
 function regPrintSvg(o){

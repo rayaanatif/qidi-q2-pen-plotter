@@ -56,3 +56,6 @@ Bed photo (phone camera)
   "Block areas off the plate" shades everything outside the plate and keeps drawings out of it. Plate size, left X and rear Y (default 280 mm, -5, 275) say where the plate sits in machine coordinates; adjust them if the dashed plate outline is off.
   "Choose photo file" lets you use any photo from the computer instead.
   Only the phone page and photo upload are reachable from your Wi-Fi, and only with the one-time code in the QR link.
+
+Reference sheet (alignment without pen marks)
+Print hardware/registration-plate/q2_regsheet_A3.pdf (or the 2xA4 version) at 100%, tape it flat on the plate with its rear-left corner on the plate's rear-left corner. In "Photo of the bed" tick "Using alignment reference sheet", take the photo with the toolhead parked (Park toolhead for photo), and the app aligns from the sheet's 12 printed rings (needs at least 8 visible). Plate size/position fields must match your plate (default 280 mm, X -5, rear Y 275).
