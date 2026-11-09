@@ -458,7 +458,7 @@ canvas{border-radius:2px;border-color:#3a3a40}
       <canvas id="alCv" style="max-width:100%;touch-action:none;cursor:crosshair;display:block"></canvas>
       <canvas id="alLoupe" width="150" height="150" style="position:absolute;top:8px;left:8px;border:2px solid var(--accent);border-radius:4px;pointer-events:none;background:#000" hidden></canvas>
     </div>
-    <div class="row" style="margin-top:10px"><button class="btn primary" id="alApply" disabled>Apply</button><button class="btn" id="alRot">Rotate photo 90&deg;</button><button class="btn" id="alReset">Reset points</button><button class="btn" id="alCancel">Cancel</button></div>
+    <div class="row" style="margin-top:10px"><button class="btn primary" id="alApply" disabled>Apply</button><button class="btn" id="alNext">Next guess</button><button class="btn" id="alSnap">Snap to edges</button><button class="btn" id="alRot">Rotate photo 90&deg;</button><button class="btn" id="alReset">Reset points</button><button class="btn" id="alCancel">Cancel</button></div>
   </div>
 </div>
 <div id="svgHold" aria-hidden="true"></div>
@@ -1876,14 +1876,14 @@ function qrDraw(canvas,text,px){
 }
 
 /* ---------- bed photo: phone / file, 4-corner alignment, underlay ---------- */
-const phCv=document.createElement("canvas");let phReady=false,phLastTs=null,phTimer=null;
+const phCv=document.createElement("canvas");let phStamp=0,phReady=false,phLastTs=null,phTimer=null;
 function photoMsg(t){$("photoMsg").textContent=t}
 async function loadPhotoBlob(blob){
   try{
     const bmp=await createImageBitmap(blob,{imageOrientation:"from-image"});
     const sc=Math.min(1,2400/Math.max(bmp.width,bmp.height));
     phCv.width=Math.round(bmp.width*sc);phCv.height=Math.round(bmp.height*sc);phCv.getContext("2d").drawImage(bmp,0,0,phCv.width,phCv.height);
-    phReady=true;$("photoCtl").hidden=false;underCv=null;update();openAligner("plate",findPlate());
+    phStamp++;phReady=true;$("photoCtl").hidden=false;underCv=null;update();openAligner("plate",findPlate());
   }catch(e){photoMsg("Couldn't read that photo: "+e.message)}
 }
 $("photoFile").addEventListener("change",e=>{const f=e.target.files[0];if(f)loadPhotoBlob(f);e.target.value=""});
@@ -1944,7 +1944,7 @@ function openAligner(mode,pts){
   alMode=mode||"sheet";alPts=[];const cv=$("alCv");alScale=Math.min(1,1000/phCv.width);
   cv.width=Math.round(phCv.width*alScale);cv.height=Math.round(phCv.height*alScale);
   if(pts)alPts=pts.map(p=>[p[0]*alScale,p[1]*alScale]);
-  $("alRot").hidden=alMode!=="plate";
+  $("alRot").hidden=alMode!=="plate";$("alNext").hidden=alMode!=="plate";$("alSnap").hidden=alMode!=="plate";
   $("aligner").hidden=false;alDraw();
 }
 function alDraw(){
@@ -1983,7 +1983,7 @@ $("alReset").addEventListener("click",()=>{alPts=[];alDraw()});
 $("alCancel").addEventListener("click",()=>{$("aligner").hidden=true});
 $("alApply").addEventListener("click",()=>{
   if(alPts.length<4)return;const cl=cornerList();
-  lastImgPts=alPts.map(p=>[p[0]/alScale,p[1]/alScale]);lastMode=alMode;
+  lastImgPts=alPts.map(p=>[p[0]/alScale,p[1]/alScale]);lastMode=alMode;if(alMode==="plate")savePrior(lastImgPts);
   const h=solveH(cl.map(x=>x.b),lastImgPts);
   if(!h){photoMsg("Those points don't make a valid quadrilateral. Reset and try again.");return}
   underCv=buildUnder(h);underOn=true;$("photoOn").checked=true;$("aligner").hidden=true;
@@ -1995,8 +1995,10 @@ $("alApply").addEventListener("click",()=>{
 });
 $("alRot").addEventListener("click",()=>{ /* turn the photo 90 degrees clockwise and re-detect the plate */
   const t=document.createElement("canvas");t.width=phCv.height;t.height=phCv.width;const c=t.getContext("2d");c.translate(t.width,0);c.rotate(Math.PI/2);c.drawImage(phCv,0,0);
-  phCv.width=t.width;phCv.height=t.height;phCv.getContext("2d").drawImage(t,0,0);openAligner("plate",findPlate());
+  phCv.width=t.width;phCv.height=t.height;phCv.getContext("2d").drawImage(t,0,0);phStamp++;openAligner("plate",findPlate());
 });
+$("alNext").addEventListener("click",()=>{if(!plateGuesses.length)return;plateGuessIdx=(plateGuessIdx+1)%plateGuesses.length;const g=plateGuesses[plateGuessIdx];alPts=g.q.map(p=>[p[0]*alScale,p[1]*alScale]);alDraw();$("alStep").textContent="Guess "+(plateGuessIdx+1)+" of "+plateGuesses.length+" ("+g.name+"). Press Next guess for another, or drag the points onto the plate corners, then Apply."});
+$("alSnap").addEventListener("click",()=>{if(alPts.length<4)return;const r=snapQuad(alPts.map(p=>[p[0]/alScale,p[1]/alScale]));alPts=r.q.map(p=>[p[0]*alScale,p[1]*alScale]);alDraw()});
 $("bAuto").addEventListener("click",()=>{if(phReady)openAligner("plate",findPlate())});
 
 /* ---------- auto-fit: find the plate in the photo, then the sheet on the plate ---------- */
@@ -2028,12 +2030,13 @@ function denseCrop(m,W,H){ /* keep only the rows/columns where the texture is de
   const xr=run(cs,W),yr=run(rs,H),o=new Uint8Array(W*H);
   for(let y=yr[0];y<=yr[1];y++)for(let x=xr[0];x<=xr[1];x++)o[y*W+x]=m[y*W+x];
   return o}
+const TEXCAP=1e9;
 function open5(m,W,H){ /* 5x5 opening (erode then dilate) drops thin lines and specks */
   const e=new Uint8Array(W*H),o=new Uint8Array(W*H);
   for(let y=2;y<H-2;y++)for(let x=2;x<W-2;x++){let all=1;for(let j=-2;j<=2&&all;j++)for(let i=-2;i<=2;i++)if(!m[(y+j)*W+x+i]){all=0;break}e[y*W+x]=all}
   for(let y=2;y<H-2;y++)for(let x=2;x<W-2;x++)if(e[y*W+x])for(let j=-2;j<=2;j++)for(let i=-2;i<=2;i++)o[(y+j)*W+x+i]=1;
   return o}
-function findPlate(){ /* returns 4 photo points [RL,RR,FR,FL] (full-res px) or null */
+function findPlateGuess(){ /* texture-based guess: 4 photo points [RL,RR,FR,FL] (full-res px) */
   const sc=Math.min(1,420/Math.max(phCv.width,phCv.height)),W=Math.round(phCv.width*sc),H=Math.round(phCv.height*sc);
   const t=document.createElement("canvas");t.width=W;t.height=H;const c=t.getContext("2d");c.drawImage(phCv,0,0,W,H);const d=c.getImageData(0,0,W,H).data;
   const g=new Uint8Array(W*H);for(let i=0;i<W*H;i++)g[i]=(0.2126*d[i*4]+0.7152*d[i*4+1]+0.0722*d[i*4+2])|0;
@@ -2048,7 +2051,7 @@ function findPlate(){ /* returns 4 photo points [RL,RR,FR,FL] (full-res px) or n
   for(const cand of cands){
     const dark=cand[0],tt=cand[1];
     let m=new Uint8Array(W*H);
-    if(cand[2]){for(let i=0;i<W*H;i++)m[i]=sd[i]>tt?1:0;m=open5(m,W,H);m=denseCrop(m,W,H)}
+    if(cand[2]){for(let i=0;i<W*H;i++)m[i]=(sd[i]>tt&&sd[i]<TEXCAP)?1:0;m=open5(m,W,H);m=denseCrop(m,W,H)}
     else for(let i=0;i<W*H;i++)m[i]=(dark?g[i]<=tt:g[i]>tt)?1:0;
     const b=bigBlob(m,W,H,0.01,cand[3]);if(!b)continue;const hl=hull(blobHull(b,W,sc).map(p=>p.slice()));
     let ha=0;for(let i=0;i<hl.length;i++){const p=hl[i],q=hl[(i+1)%hl.length];ha+=p[0]*q[1]-q[0]*p[1]}ha=Math.abs(ha)/2;
@@ -2063,9 +2066,78 @@ function findPlate(){ /* returns 4 photo points [RL,RR,FR,FL] (full-res px) or n
   const q=[tl,tr,br,bl],L=[0,1,2,3].map(i=>Math.hypot(q[i][0]-q[(i+1)%4][0],q[i][1]-q[(i+1)%4][1]));
   const bad=Math.max.apply(null,L)/Math.max(1,Math.min.apply(null,L))>1.9||q.some(p=>p[0]<W*.015||p[1]<H*.015||p[0]>W*.985||p[1]>H*.985);
   /* if the guess is not plate-shaped (or runs off the picture), start from a centred box instead; it is easier to drag from there */
-  const out=bad?[[.2,.15],[.8,.15],[.8,.85],[.2,.85]].map(p=>[p[0]*W,p[1]*H]):q;
-  return out.map(p=>[p[0]/sc,p[1]/sc]);
+  if(bad)return null;
+  return q.map(p=>[p[0]/sc,p[1]/sc]);
 }
+function edgeFit(blob,W,H,X0,Y1){
+  const inB=new Uint8Array(W*H);blob.forEach(p=>{inB[p]=1});const pts=[];
+  /* normals from a smoothed copy of the mask (a staircase edge would otherwise give 45-degree normals) */
+  const R=4,bl=new Float32Array(W*H),tmp=new Float32Array(W*H);
+  for(let j=0;j<H;j++){let acc=0;for(let i=0;i<W+R;i++){if(i<W)acc+=inB[j*W+i];if(i-2*R-1>=0)acc-=inB[j*W+i-2*R-1];const x=i-R;if(x>=0&&x<W)tmp[j*W+x]=acc}}
+  for(let i=0;i<W;i++){let acc=0;for(let j=0;j<H+R;j++){if(j<H)acc+=tmp[j*W+i];if(j-2*R-1>=0)acc-=tmp[(j-2*R-1)*W+i];const y=j-R;if(y>=0&&y<H)bl[y*W+i]=acc/((2*R+1)*(2*R+1))}}
+  blob.forEach(p=>{const i=p%W,j=(p/W)|0;if(i<1||j<1||i>=W-1||j>=H-1)return;
+    if(inB[p-1]&&inB[p+1]&&inB[p-W]&&inB[p+W])return;
+    const gx=bl[p+1]-bl[p-1],gy=bl[p+W]-bl[p-W];if(Math.hypot(gx,gy)<1e-3)return;
+    pts.push([X0+i+.5,Y1-j-.5,Math.atan2(gy,-gx)])}); /* outward normal in bed axes (y up): -grad, with image-y flipped */
+  if(pts.length<200)return null;
+  /* pick the angle where the boundary lines up into the sharpest, longest straight edges (a toolhead has short edges, the sheet long ones) */
+  const OFF=1500,hu=new Float32Array(3*OFF),hv=new Float32Array(3*OFF);let bestT=0,bestS=-1;
+  const fill=t=>{hu.fill(0);hv.fill(0);const c=Math.cos(t),sn=Math.sin(t);
+    pts.forEach(q=>{const u=q[0]*c+q[1]*sn,v=-q[0]*sn+q[1]*c;let r=q[2]-t;r=((r%Math.PI)+Math.PI*1.5)%Math.PI-Math.PI/2;
+      if(Math.abs(r)<18*Math.PI/180)hu[Math.round(u)+OFF]++;else if(Math.abs(r)>72*Math.PI/180)hv[Math.round(v)+OFF]++})};
+  for(let d=-45;d<45;d+=.5){const t=d*Math.PI/180;fill(t);let sc=0;for(let k=0;k<hu.length;k++){const a=hu[k]+.5*(hu[k-1]||0)+.5*(hu[k+1]||0),b2=hv[k]+.5*(hv[k-1]||0)+.5*(hv[k+1]||0);sc+=a*a+b2*b2}if(sc>bestS){bestS=sc;bestT=t}}
+  const t=bestT,c=Math.cos(t),sn=Math.sin(t);fill(t);
+  const sm=a=>{const o=new Float32Array(a.length);for(let i=2;i<a.length-2;i++)o[i]=a[i]+.8*(a[i-1]+a[i+1])+.5*(a[i-2]+a[i+2]);return o};
+  const pk=a=>{const sa=sm(a),mx=Math.max.apply(null,sa),r=[];for(let i=3;i<sa.length-3;i++)if(sa[i]>=.15*mx&&sa[i]>=sa[i-1]&&sa[i]>sa[i+1]&&sa[i]>=sa[i-2]&&sa[i]>=sa[i+2])r.push([i-OFF,sa[i]]);return r};
+  const pair=a=>{const p=pk(a);let best=null;for(let i=0;i<p.length;i++)for(let j=i+1;j<p.length;j++){const d=Math.abs(p[j][0]-p[i][0]);if(d<40)continue;const sc=p[i][1]+p[j][1];if(!best||sc>best.sc)best={sc:sc,a:Math.min(p[i][0],p[j][0]),b:Math.max(p[i][0],p[j][0])}}return best};
+  const pu=pair(hu),pv=pair(hv);if(!pu||!pv)return null;
+  return {a:t,c:c,s:sn,u0:pu.a,u1:pu.b,v0:pv.a,v1:pv.b};
+}
+/* ---------- plate guesses: several ranked candidates, each snapped onto straight edges ---------- */
+let edgeCache=null,plateGuesses=[],plateGuessIdx=0;
+function edgeMapFor(){
+  if(edgeCache&&edgeCache.cv===phCv&&edgeCache.w===phCv.width&&edgeCache.t===phStamp)return edgeCache;
+  const sc=Math.min(1,420/Math.max(phCv.width,phCv.height)),W=Math.round(phCv.width*sc),H=Math.round(phCv.height*sc);
+  const t=document.createElement("canvas");t.width=W;t.height=H;const c=t.getContext("2d");c.drawImage(phCv,0,0,W,H);const d=c.getImageData(0,0,W,H).data;
+  const g=new Float32Array(W*H);for(let i=0;i<W*H;i++)g[i]=0.2126*d[i*4]+0.7152*d[i*4+1]+0.0722*d[i*4+2];
+  const mag=new Float32Array(W*H);
+  for(let y=1;y<H-1;y++)for(let x=1;x<W-1;x++){const i=y*W+x,gx=g[i+1]-g[i-1]+.5*(g[i-W+1]-g[i-W-1]+g[i+W+1]-g[i+W-1]),gy=g[i+W]-g[i-W]+.5*(g[i+W-1]-g[i-W-1]+g[i+W+1]-g[i-W+1]);mag[i]=Math.hypot(gx,gy)}
+  const srt=Float32Array.from(mag).sort(),E=Math.max(8,srt[Math.floor(srt.length*.9)]);
+  const mx=new Float32Array(W*H);/* 5x5 local maximum, so a thin rim 1-2 px off still counts */
+  for(let y=2;y<H-2;y++)for(let x=2;x<W-2;x++){let m=0;for(let j=-2;j<=2;j++)for(let i=-2;i<=2;i++){const v=mag[(y+j)*W+x+i];if(v>m)m=v}mx[y*W+x]=Math.min(1,m/E)}
+  edgeCache={cv:phCv,w:phCv.width,t:phStamp,sc:sc,W:W,H:H,mx:mx};return edgeCache;
+}
+function quadEdgeScore(q,em){ /* mean edge strength along the four sides (q in edge-map px) */
+  let tot=0,cnt=0;
+  for(let i=0;i<4;i++){const p=q[i],r=q[(i+1)%4],n=Math.max(8,Math.round(Math.hypot(r[0]-p[0],r[1]-p[1])/2));let s=0;
+    for(let k=0;k<=n;k++){const x=Math.round(p[0]+(r[0]-p[0])*k/n),y=Math.round(p[1]+(r[1]-p[1])*k/n);s+=(x>=0&&y>=0&&x<em.W&&y<em.H)?em.mx[y*em.W+x]:0}
+    tot+=Math.min(.85,s/(n+1))/.85;cnt++}
+  return tot/cnt;
+}
+function snapQuad(ptsFull){ /* nudge each corner onto strong straight edges (coordinate descent, stays near the start) */
+  const em=edgeMapFor(),q0=ptsFull.map(p=>[p[0]*em.sc,p[1]*em.sc]);let q=q0.map(p=>p.slice());
+  const obj=qq=>quadEdgeScore(qq,em)-0.004*qq.reduce((a,p,i)=>a+Math.hypot(p[0]-q0[i][0],p[1]-q0[i][1]),0);
+  let cur=obj(q);
+  for(const step of [10,6,3,1.5,1]){for(let pass=0;pass<3;pass++){let moved=false;
+    for(let i=0;i<4;i++)for(let dx=-2;dx<=2;dx++)for(let dy=-2;dy<=2;dy++){if(!dx&&!dy)continue;
+      const t=q.map(p=>p.slice());t[i][0]+=dx*step;t[i][1]+=dy*step;if(Math.hypot(t[i][0]-q0[i][0],t[i][1]-q0[i][1])>0.05*Math.max(em.W,em.H))continue;const v=obj(t);if(v>cur+1e-4){cur=v;q=t;moved=true}}
+    if(!moved)break}}
+  return {q:q.map(p=>[p[0]/em.sc,p[1]/em.sc]),score:quadEdgeScore(q,em)};
+}
+const PRIOR_KEY="q2plotter.lastPlateQuad";
+function loadPrior(){try{const j=JSON.parse(localStorage.getItem(PRIOR_KEY)||"null");if(j&&j.q&&j.q.length===4)return j}catch(e){}return null}
+function savePrior(ptsFull){try{localStorage.setItem(PRIOR_KEY,JSON.stringify({q:ptsFull.map(p=>[p[0]/phCv.width,p[1]/phCv.height]),ar:phCv.width/phCv.height}))}catch(e){}}
+function buildGuesses(){
+  const W=phCv.width,H=phCv.height,out=[];
+  const add=(name,pts,snap)=>{if(!pts)return;let q=pts;if(snap){const r=snapQuad(pts);q=r.q}out.push({name:name,q:q})};
+  const pr=loadPrior();if(pr&&Math.abs(pr.ar-W/H)<0.05){add("your last confirmed corners",pr.q.map(p=>[p[0]*W,p[1]*H]),true)}
+  add("texture detector",findPlateGuess(),false);
+  [[.2,.15,.8,.85],[.1,.1,.9,.9],[.28,.2,.72,.8]].forEach((b,i)=>add(["centred box","wide box","narrow box"][i],[[b[0]*W,b[1]*H],[b[2]*W,b[1]*H],[b[2]*W,b[3]*H],[b[0]*W,b[3]*H]],i<2));
+  /* drop near-duplicates */
+  const keep=[];out.forEach(g=>{if(!keep.some(k=>k.q.every((p,i)=>Math.hypot(p[0]-g.q[i][0],p[1]-g.q[i][1])<.03*Math.max(W,H))))keep.push(g)});
+  return keep;
+}
+function findPlate(){plateGuesses=buildGuesses();plateGuessIdx=0;return plateGuesses.length?plateGuesses[0].q:null}
 function findSheet(h){ /* h maps bed mm -> photo px. Looks at the plate area (plus a strip in front) in top-down view, 1 px = 1 mm */
   const P=plateRect(),M=30,X0=Math.floor(P.x-M),X1=Math.ceil(P.x+P.s+M),Y1=Math.ceil(P.y+M),Y0=Math.floor(P.y-P.s-M),W=X1-X0,H=Y1-Y0;
   const src=phCv.getContext("2d").getImageData(0,0,phCv.width,phCv.height).data,PW=phCv.width,PH=phCv.height;
@@ -2095,6 +2167,8 @@ function findSheet(h){ /* h maps bed mm -> photo px. Looks at the plate area (pl
   let best=null;for(let i=0;i<pts.length;i++){const p=pts[i],q=pts[(i+1)%pts.length],a=Math.atan2(q[1]-p[1],q[0]-p[0]),c=Math.cos(a),s=Math.sin(a);
     let u0=1e9,u1=-1e9,v0=1e9,v1=-1e9;pts.forEach(r=>{const u=r[0]*c+r[1]*s,v=-r[0]*s+r[1]*c;u0=Math.min(u0,u);u1=Math.max(u1,u);v0=Math.min(v0,v);v1=Math.max(v1,v)});
     const ar=(u1-u0)*(v1-v0);if(!best||ar<best.ar)best={ar:ar,a:a,c:c,s:s,u0:u0,u1:u1,v0:v0,v1:v1}}
+  /* refine from the sheet's own straight edges: robust to a toolhead or rail covering part of the sheet */
+  const ef=edgeFit(blob,W,H,X0,Y1);if(ef){const ar0=(best.u1-best.u0)*(best.v1-best.v0),ar1=(ef.u1-ef.u0)*(ef.v1-ef.v0);if(ar1>0.3*ar0&&ar1<1.15*ar0)best=ef}
   const uw=best.u1-best.u0,vw=best.v1-best.v0,cu=(best.u0+best.u1)/2,cv=(best.v0+best.v1)/2;
   let cx=cu*best.c-cv*best.s,cy=cu*best.s+cv*best.c,w=uw,hgt=vw,ang=best.a*180/Math.PI;
   /* fold the angle into -45..45 so w runs along the sheet's "x" axis */
