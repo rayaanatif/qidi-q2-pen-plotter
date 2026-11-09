@@ -63,9 +63,6 @@ def black_for(name):
         if x-CR>=x0+1 and x+CR<=x1-1 and y-CR>=y0+1 and y+CR<=y1-1 and (x1<S or x+CR<=S):   # ring wholly inside this tile
             ring=subtract(cyl(RR_+LW/2,48,T-0.02,T+MH,x,y),cyl(RR_-LW/2,48,T-0.1,T+MH+0.1,x,y))
             add(union(union(ring,box(x-CR,x+CR,y-LW/2,y+LW/2,T-0.02,T+MH)),box(x-LW/2,x+LW/2,y-CR,y+CR,T-0.02,T+MH)))
-    if name=="LR":   # paper corner stop: A4 portrait, left edge x=40, rear edge y=S-30
-        px,py=40.0,S-30
-        add(union(box(px-4.5,px+30,py,py+4.5,T-0.02,T+STOP_H),box(px-4.5,px,py-40,py+4.5,T-0.02,T+STOP_H)))
     return sol
 def stl(polys,fn):
     tris=[]
@@ -85,4 +82,4 @@ for nm in tiles:
     V,faces=merge_faces(full);faces=conform(V,faces);nb,vol=check(V,faces)
     bb=np.array([v for p in full for v in p.v]);print(nm,"bbox",bb.min(0).round(1),bb.max(0).round(1),"vol %.0f"%vol,"bad",nb,"black",bool(b))
     write_step(f"{OUT}/q2_plate280_tile_{nm}.step",V,faces,"q2_plate280_tile_"+nm)
-json.dump(dict(plate=[S,S,T],rear_tab=[RT_W,RT_H],front_tab=[FT_W0,FT_W1,FT_H],seams=dict(x=SX,y=SY),magnets=allm,keys=[[list(k[0]),k[1]] for k in keys],marks=MARKS,paper_corner=[40,S-30],mark_height=MH,colour_change_z=T),open(f"{OUT}/q2_plate280_layout.json","w"))
+json.dump(dict(plate=[S,S,T],rear_tab=[RT_W,RT_H],front_tab=[FT_W0,FT_W1,FT_H],seams=dict(x=SX,y=SY),magnets=allm,keys=[[list(k[0]),k[1]] for k in keys],marks=MARKS,mark_height=MH,colour_change_z=T),open(f"{OUT}/q2_plate280_layout.json","w"))
