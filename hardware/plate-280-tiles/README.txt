@@ -1,6 +1,7 @@
-Q2 280 mm plate replica - 4 printed tiles
-Assemble: LF (front-left), LR (rear-left), RF (front-right), RR (rear-right, carries the rear tab). Dovetail keys lock the seams (0.15 mm clearance per side); add a drop of CA glue or epoxy along each seam. Then glue the printed reference sheet (hardware/registration-plate q2_regsheet_*.pdf, 280 mm square) on top with its corners on the plate corners; the sheet also bridges the seams.
-Print: each tile flat, pockets side down (they are open at the bottom), PLA/PETG, 3 mm thick, 4 perimeters, 20% infill. Largest tile 205 x 152 mm fits the 270 mm bed.
-Magnets: 4 pockets per tile (16 total), 5 x 2 mm, same pole up, glued in; they hold the plate on the Q2's magnetic bed.
-Outline is ESTIMATED from a product photo: rear tab 35 x 12 mm centred; front handle 118 mm at the plate edge narrowing to 98 mm, 10.5 mm long. Measure your plate and edit RT_W/RT_H/FT_* in plate_tiles.py to match, or tell me the numbers.
-Thickness 3 mm is thicker than the original flex plate; re-measure z_draw with PEN_TOUCH on the new plate.
+Q2 280 mm plate replica - 4 printed tiles with alignment rings (dual colour)
+Tiles: LF (front-left), LR (rear-left, has the paper corner stop), RF (front-right, front handle), RR (rear-right, rear tab). Files per tile: *_base.stl (print in a light coloured filament so white paper stands out, e.g. yellow, light blue or light green - not dark), *_black.stl (12 rings in total across the tiles + paper stop, black), *_combined.stl / .step (both). In the slicer import base+black as one multi-part object, or use the combined STL and change colour at z = 3.0 mm (pause or Box).
+Each tile prints flat, pockets down, 3 mm base + 0.4 mm rings (stop 1.2 mm). Largest tile 201 x 152 mm.
+Dovetail keys lock the seams (0.15 mm clearance); add a drop of CA glue or epoxy. Magnets: 4 pockets per tile (16 total), 5 x 2 mm, same pole up.
+Alignment: assemble, place on the bed like the original plate (rear-left corner of the 280 plate). In the app tick "Using alignment reference sheet": the rings are at exactly the same positions as the printed sheet (hardware/registration-plate). Push an A4 portrait sheet into the corner stop; the paper's left edge is 40 mm from the plate's left edge.
+Outline ESTIMATED from a product photo: rear tab 35 x 12, front handle 118 > 98 x 10.5. Edit the constants at the top of plate_tiles.py after measuring.
+Thickness 3 mm is more than the original flex plate; re-measure z_draw with PEN_TOUCH.
