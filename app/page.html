@@ -1948,11 +1948,12 @@ let alPts=[],alDrag=-1,alScale=1,lastImgPts=null,alMode="sheet",lastMode="sheet"
 function plateRect(){const s=parseFloat($("plSize").value)||280,x=parseFloat($("plX").value),y=parseFloat($("plY").value);return {x:isFinite(x)?x:-5,y:isFinite(y)?y:275,s:s}}
 function cornerList(){
   if(alMode==="plate"){const P=plateRect();return [{n:"REAR-LEFT corner of the build plate",b:[P.x,P.y]},{n:"REAR-RIGHT corner of the build plate",b:[P.x+P.s,P.y]},{n:"FRONT-RIGHT corner of the build plate",b:[P.x+P.s,P.y-P.s]},{n:"FRONT-LEFT corner of the build plate",b:[P.x,P.y-P.s]}]}
-  const o=readOpts(),pX=o.paperX,pY=o.paperY;
-  return [{n:"REAR-LEFT corner of the sheet (back of the printer, left side)",b:[pX,pY]},
-          {n:"REAR-RIGHT corner of the sheet (back of the printer, right side)",b:[pX+PAPER_W,pY]},
-          {n:"FRONT-RIGHT corner of the sheet (door side, right)",b:[pX+PAPER_W,pY-PAPER_H]},
-          {n:"FRONT-LEFT corner of the sheet (door side, left)",b:[pX,pY-PAPER_H]}];
+  const o=readOpts(),pX=o.paperX,pY=o.paperY,cx=pX+PAPER_W/2,cy=pY-PAPER_H/2,a=SHEET_ANG*Math.PI/180,cc=Math.cos(a),ss=Math.sin(a);
+  const R=(dx,dy)=>[cx+dx*cc-dy*ss,cy+dx*ss+dy*cc]; /* sheet corners, turned about the sheet centre when Auto-fit found a tilt */
+  return [{n:"REAR-LEFT corner of the sheet (back of the printer, left side)",b:R(-PAPER_W/2,PAPER_H/2)},
+          {n:"REAR-RIGHT corner of the sheet (back of the printer, right side)",b:R(PAPER_W/2,PAPER_H/2)},
+          {n:"FRONT-RIGHT corner of the sheet (door side, right)",b:R(PAPER_W/2,-PAPER_H/2)},
+          {n:"FRONT-LEFT corner of the sheet (door side, left)",b:R(-PAPER_W/2,-PAPER_H/2)}];
 }
 let alIdx=0,alVc=[0,0],alZoom=5;const AL_W=760,AL_H=520;
 function alS0(){return Math.min(AL_W/phCv.width,AL_H/phCv.height)}
@@ -1999,7 +2000,7 @@ function alMove(dxs,dys){const s=alS();alVc[0]=Math.max(0,Math.min(phCv.width,al
   mini.addEventListener("pointerdown",ev=>{md=true;mini.setPointerCapture(ev.pointerId);mset(ev)});mini.addEventListener("pointermove",ev=>{if(md)mset(ev)});mini.addEventListener("pointerup",()=>{md=false});
   document.addEventListener("keydown",ev=>{if($("aligner").hidden)return;const st=ev.shiftKey?10:1;let d=null;if(ev.key==="ArrowLeft")d=[st,0];else if(ev.key==="ArrowRight")d=[-st,0];else if(ev.key==="ArrowUp")d=[0,st];else if(ev.key==="ArrowDown")d=[0,-st];if(d){ev.preventDefault();alMove(d[0],d[1])}});
   $("alZp").addEventListener("click",()=>{alZoom=Math.min(16,alZoom*1.4);alDraw()});$("alZm").addEventListener("click",()=>{alZoom=Math.max(1,alZoom/1.4);alDraw()});
-  $("alNextC").addEventListener("click",()=>{if(alIdx<3){alIdx++;alVc=alPts[alIdx].slice();alDraw()}else $("alApply").focus()});
+  $("alNextC").addEventListener("click",()=>{if(alIdx<3){alIdx++;alVc=alPts[alIdx].slice();alDraw()}else $("alApply").click()});
   $("alBack").addEventListener("click",()=>{if(alIdx>0){alIdx--;alVc=alPts[alIdx].slice();alDraw()}});
 })();
 /* re-align automatically when the sheet position changes (same four photo points, new bed coordinates) */
