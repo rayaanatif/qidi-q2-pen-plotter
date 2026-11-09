@@ -34,6 +34,7 @@ Please report results, good or bad, in an issue.
 1. Print the parts in [hardware/](hardware/README.md).
 2. Follow [docs/SETUP.md](docs/SETUP.md): mount, `plotter.cfg`, `z_draw`, mesh, calibrate.
 3. Run the app from [app/](app/README.txt) and plot.
+   For the tuned version (photo alignment from pen-drawn marks, line weight and solid colour with a marker) use [app-pro/](app-pro/README.txt) instead.
 
 ## Where things are
 
