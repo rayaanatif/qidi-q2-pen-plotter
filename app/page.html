@@ -2191,6 +2191,12 @@ function findSheet(h){ /* h maps bed mm -> photo px. Looks at the plate area (pl
   /* tidy: a 3x3 majority pass to drop speckle */
   const m2=new Uint8Array(W*H);for(let j=1;j<H-1;j++)for(let i=1;i<W-1;i++){let s=0;for(let a=-1;a<=1;a++)for(let b=-1;b<=1;b++)s+=m[(j+a)*W+i+b];m2[j*W+i]=s>=5?1:0}
   const blob=bigBlob(m2,W,H,0.03);if(!blob)return {err:"Couldn't find a sheet that stands out from the plate."};
+  { /* is it really a sheet? it must be clearly different in brightness from the rest of the plate */
+    const inB=new Uint8Array(W*H);blob.forEach(p=>{inB[p]=1});let si=0,ni=0,so=0,no=0;
+    for(let j=0;j<H;j++)for(let i=0;i<W;i++){const k=j*W+i;if(!ok[k])continue;const by=Y1-j-.5,bx=X0+i+.5;if(by<P.y-P.s||by>P.y||bx<P.x||bx>P.x+P.s)continue;if(inB[k]){si+=g[k];ni++}else{so+=g[k];no++}}
+    const dl=(si/Math.max(1,ni))-(so/Math.max(1,no));
+    if(ni<0.04*P.s*P.s||(no>0.02*P.s*P.s&&(light?dl<35:dl>-35)))return {err:"No sheet stands out clearly from the plate in this photo."};
+  }
   const pts=blobHull(blob,W,1).map(p=>[p[0]+X0,Y1-p[1]]); /* bed mm */
   /* minimum-area rectangle over hull edge directions */
   let best=null;for(let i=0;i<pts.length;i++){const p=pts[i],q=pts[(i+1)%pts.length],a=Math.atan2(q[1]-p[1],q[0]-p[0]),c=Math.cos(a),s=Math.sin(a);
