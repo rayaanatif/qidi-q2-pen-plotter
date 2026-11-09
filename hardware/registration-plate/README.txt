@@ -1,5 +1,4 @@
-Q2 magnetic registration plate (264 x 264 x 3 mm)
-Orientation: print face-up, flat on the PEI. Files: q2_regplate.step, *_combined.stl, *_white_base.stl + *_black_marks.stl (import both as one object / parts), *_layout.json (mark, stop, magnet coordinates, origin = front-left of plate).
-Magnets: 9x 5x2 mm in underside pockets (5.1 x 2.1). Insert with the SAME pole facing up (mark one with a pen first); put a drop of CA glue or tape over them. They grab the Q2's steel build plate.
-Colours: white filament up to z=3.0 mm, pause (M600 / colour change at layer z=3.0), then black for rings, crosses (0.4 mm) and the paper corner stops (1.2 mm). Two-body import auto-assigns this in Orca/Qidi slicer.
-Paper: A4 portrait pushed into the rear/left L stop; it overhangs the front edge. Marks sit outside the paper.
+Printable alignment reference sheets for the Q2 (280 mm plate). Print at 100% (Actual size).
+q2_regsheet_A3.pdf - one A3 page. q2_regsheet_2xA4_landscape.pdf - two A4 pages, cut page 2 along the dashed line and match the numbered ruler to page 1.
+12 rings: 4 corners plus the left, rear and right strips, clear of an A4 sheet pushed into the rear-left corner. Corner of the sheet goes on the plate's rear-left corner.
+A printable plate to glue it onto: ../plate-280-tiles
