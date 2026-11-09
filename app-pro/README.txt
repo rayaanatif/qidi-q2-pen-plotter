@@ -10,11 +10,15 @@ You need Python 3.8 or newer (nothing else to install).
   Windows: install from python.org or the Microsoft Store (tick "Add python to PATH").
 
 What is new in Pro
-  Easier layout
-    The Convert page is now a numbered workflow: 1 Load your drawing (drop SVG files on the box), 2 Size and place it on the sheet. Less-used settings (arrange, photo, fills, pen width, several pens, machine settings) are collapsed sections: click a heading to open it, or use Expand all / Collapse all; the page remembers what you opened. The left settings and the right preview scroll separately, so the preview stays in view while you change settings. "Ready to plot?" under the preview ticks off drawing loaded, fits the pen's reach, z_draw entered, photo aligned and paper meshed, with a Go link on each open item.
+  Workspace layout (like Bambu Studio / OrcaSlicer)
+    Top tabs: Prepare, Preview, Device, Settings (then Image to SVG, Editor, Cutter). The top bar shows whether the printer is online.
+    Prepare: Drawing, arrange and bed photo on the left (drop SVG files on the box); the bed in the middle (drag to move, corner squares to resize); the selected drawing's size and position, a "Settings at a glance" summary and the "Ready to plot?" checklist on the right (each open item has a Go link).
+    Preview: simulation of the pen path with a scrub bar, and the G-code with Copy, Download .gcode, the calibration cross and the photo alignment marks.
+    Device: printer status (Refresh, or check every 15 s), connection and upload / start / cancel / emergency stop, the PLOT_MESH command and button, and a G-code console with Home all, Motors off and Firmware restart. Needs the local helper (q2_plotter.py) running and the page opened from its address.
+    Settings: sheet and paper, pen and machine (offsets, z_draw, speeds), fill and shading, pen width and lines, several pens. All settings are remembered.
   Photo alignment marks (no more corner tapping)
     1. Put the sheet on the bed. Under "Paper on the bed" set where it is and its size.
-    2. Step 2, press "Make photo alignment marks" and plot that G-code with a black pen. It draws six ringed crosses just inside the sheet edges (inset set next to the button, default 7 mm) at exact bed positions, so the pen itself defines the reference. Keep your artwork inside the margins so a line does not touch a mark.
+    2. On the Preview tab, press "Make photo alignment marks" and plot that G-code with a black pen. It draws six ringed crosses just inside the sheet edges (inset set next to the button, default 7 mm) at exact bed positions, so the pen itself defines the reference. Keep your artwork inside the margins so a line does not touch a mark.
     3. Take the bed photo as usual. The app finds the marks and aligns the photo by itself ("Aligned automatically from N alignment marks"). If it cannot find them it opens the corner-tapping view as before. "Auto-align from marks" re-runs the search.
     Needs: black or dark pen, the four corner marks in view and not under the toolhead or your hand, and the paper settings unchanged since you drew the marks. Accuracy is best near the marks and a little less in the far corners of the plate.
   Pen width and line weight

@@ -111,7 +111,7 @@ canvas{border-radius:2px;border-color:#3a3a40}
 @media(min-width:1000px){
   #convert .grid{height:calc(100vh - 152px);min-height:480px}
   #convert .grid>div{height:100%;overflow-y:auto;padding-right:6px;scroll-behavior:smooth}
-  #convert #cvWrap{max-width:calc(100vh - 360px);min-width:380px;margin:0 auto}
+  #convert #cvWrap{margin:0 auto}
 }
 .panel.fold>h2{cursor:pointer;user-select:none}
 .panel.fold>h2:hover{color:#fff}
@@ -138,6 +138,45 @@ details.paste summary:hover{color:var(--ink)}
 #ready .go:hover{text-decoration:underline}
 #ready .why{color:var(--muted);font-size:12px}
 #ready .sum{margin:8px 0 0;font-size:13px;font-weight:600}
+
+/* ---- Pro: workspace (Prepare / Preview / Device / Settings) ---- */
+nav{align-items:stretch}
+#navPrn{margin-left:auto;display:flex;align-items:center;gap:8px;padding:0 14px;font-size:12.5px;color:#c8c8cf;cursor:pointer;white-space:nowrap}
+#navPrn:hover{color:#fff}
+#navDot{width:9px;height:9px;border-radius:50%;background:#6b6b75;display:inline-block}
+#navDot.on{background:var(--ok)}#navDot.off{background:var(--warn)}#navDot.busy{background:#ffb454}
+@media(min-width:1100px){
+  .ws{display:grid;grid-template-columns:310px minmax(0,1fr) 330px;gap:10px;height:calc(100vh - 152px);min-height:480px}
+  .ws>.col,.ws2>.col,.devgrid>.col,.settw>.col{height:100%;overflow-y:auto;padding-right:4px}
+  .ws2{display:grid;grid-template-columns:minmax(0,1fr) 440px;gap:10px;height:calc(100vh - 152px);min-height:480px}
+  .devgrid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:10px;height:calc(100vh - 152px);min-height:480px}
+  .settw{display:grid;grid-template-columns:230px minmax(0,1fr);gap:10px;height:calc(100vh - 152px);min-height:480px}
+  .ws #cvWrap,.ws2 #cvWrap{max-width:calc(100vh - 330px);min-width:360px;margin:0 auto}
+}
+@media(max-width:1099px){.ws,.ws2,.devgrid,.settw{display:flex;flex-direction:column;gap:10px}}
+#convert .grid,#convert>.grid{display:none}
+.col>.panel+.panel{margin-top:10px}
+#settNav{display:flex;flex-direction:column;gap:2px;align-content:flex-start;background:#262629;border:1px solid #3a3a40;border-radius:3px;padding:6px;height:max-content}
+#settNav button{background:none;border:0;text-align:left;color:#c8c8cf;padding:9px 12px;border-radius:3px;font:13px var(--font-body);cursor:pointer;display:flex;flex-direction:column;gap:1px}
+#settNav button small{color:var(--muted);font-size:11px}
+#settNav button[aria-selected="true"]{background:var(--accent);color:#fff}
+#settNav button[aria-selected="true"] small{color:#dbe5ff}
+#settNav .hd{font-size:11px;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);padding:8px 12px 4px}
+.sumrow{display:flex;align-items:baseline;gap:8px;font-size:13px;padding:3px 0}
+.sumrow span:first-child{color:var(--muted);width:92px;flex:none}
+.sumrow span:nth-child(2){flex:1;min-width:0}
+.sumrow button{background:none;border:0;color:var(--accent);cursor:pointer;font:12.5px var(--font-body);padding:0 2px}
+.sumrow button:hover{text-decoration:underline}
+.pill{display:inline-flex;align-items:center;gap:6px;padding:2px 10px;border-radius:99px;border:1px solid var(--line);font-size:12.5px}
+.pill i{width:8px;height:8px;border-radius:50%;background:#6b6b75}
+.pill.on i{background:var(--ok)}.pill.off i{background:var(--warn)}
+.kv{display:grid;grid-template-columns:110px 1fr;gap:4px 10px;font-size:13px;margin-top:10px}
+.kv span:nth-child(odd){color:var(--muted)}
+#conLog{min-height:90px;max-height:220px;overflow:auto;white-space:pre-wrap;font-size:12px}
+.vo canvas{cursor:default}
+.page{max-width:760px}
+@media(min-width:1100px){#prevSide #out{min-height:calc(100vh - 400px)}}
+#simScrub{flex:1;min-width:120px}
 </style>
 
 </head><body>
@@ -148,11 +187,24 @@ details.paste summary:hover{color:var(--ink)}
 </header>
 
 <nav role="tablist">
-  <button role="tab" id="t-convert" aria-selected="true" data-tab="convert">Convert SVG</button>
+  <button role="tab" id="t-convert" aria-selected="true" data-tab="convert">Prepare</button>
+  <button role="tab" id="t-prev" aria-selected="false" data-tab="prev">Preview</button>
+  <button role="tab" id="t-dev" aria-selected="false" data-tab="dev">Device</button>
+  <button role="tab" id="t-sett" aria-selected="false" data-tab="sett">Settings</button>
   <button role="tab" id="t-img" aria-selected="false" data-tab="img">Image to SVG</button>
   <button role="tab" id="t-edit" aria-selected="false" data-tab="edit">Editor</button>
   <button role="tab" id="t-cut" aria-selected="false" data-tab="cut">Cutter (soon)</button>
+  <span id="navPrn" role="button" tabindex="0" title="Open the Device tab"><i id="navDot"></i><span id="navTxt">Printer: not checked</span></span>
 </nav>
+<section id="prev" hidden>
+  <div class="ws2"><div id="prevMain" class="col"></div><div id="prevSide" class="col"></div></div>
+</section>
+<section id="dev" hidden>
+  <div class="devgrid"><div id="devA" class="col"></div><div id="devB" class="col"></div></div>
+</section>
+<section id="sett" hidden>
+  <div class="settw"><div id="settNav"></div><div id="settBody" class="col"></div></div>
+</section>
 
 <section id="convert">
 <div class="grid">
@@ -2385,56 +2437,167 @@ function findPlate(){plateGuesses=buildGuesses();plateGuessIdx=0;return plateGue
 $("svgText").value=SAMPLE;loadText(SAMPLE,"sample drawing",true);histBtn();
 setMsg("note","Sample drawing loaded (100 mm test pattern). Load your own SVG to replace it.");
 
-/* ---------- guided layout: numbered, collapsible sections and a ready-to-plot checklist ---------- */
+/* ---------- workspace: Prepare / Preview / Device / Settings, built from the existing panels ---------- */
 let meshDone=false;
+const ws={};
+function showTab(id){const b=document.querySelector('nav button[data-tab="'+id+'"]');if(b)b.click()}
+function hostCanvas(){
+  const w=$("cvWrap"),host=!$("prev").hidden?$("prevHost"):$("prepHost");
+  if(w&&host&&w.parentNode!==host){host.appendChild(w);w.classList.toggle("vo",host.id==="prevHost");repaint()}
+}
+function selCat(id){
+  ws.cat=id;try{localStorage.setItem("q2cat",id)}catch(e){}
+  document.querySelectorAll("#settNav button[data-cat]").forEach(b=>b.setAttribute("aria-selected",String(b.dataset.cat===id)));
+  document.querySelectorAll("#settBody>.page").forEach(p=>p.hidden=p.dataset.cat!==id);
+}
+window.__goTo=id=>{
+  const el=$(id);if(!el)return;
+  const sec=el.closest("section");if(sec&&sec.hidden)showTab(sec.id);
+  const pg=el.closest(".page");if(pg)selCat(pg.dataset.cat);
+  const p=el.closest(".panel.fold");if(p&&p._set)p._set(true);
+  setTimeout(()=>{el.scrollIntoView({block:"nearest",behavior:"smooth"});if(el.focus)el.focus()},60);
+};
 (function(){
-  const col=document.querySelector("#convert .grid>div:first-child");if(!col)return;
-  const byTitle={};col.querySelectorAll(":scope>.panel").forEach(p=>{const h=p.querySelector("h2");if(h)byTitle[h.firstChild.textContent.trim()]=p});
-  const plan=[["Drawing","Load your drawing",1,0,1],["Placement","Size and place it on the sheet",2,0,1],["Arrange and project","Arrange, flip and save",0,0,0],
-    ["Bed photo","Photo of the bed",0,1,0],["Colour in filled areas","Fill and shading",0,1,0],["Pen width and line weight","Pen width and line weight",0,1,0],
-    ["Pens (colours)","Several pens (colours)",0,1,0],["Pen height and speed","Machine settings (set once)",0,0,0]];
-  let saved={};try{saved=JSON.parse(localStorage.getItem("q2ux")||"{}")}catch(e){}
-  const bar=document.createElement("div");bar.className="foldbar";
-  bar.innerHTML='<span>Sections:</span><button type="button" id="foldAll">Expand all</button><button type="button" id="foldNone">Collapse all</button>';
-  col.insertBefore(bar,col.firstChild);
-  const panels=[];let anchor=bar;
-  plan.forEach(pl=>{
-    const p=byTitle[pl[0]];if(!p)return;
-    const h=p.querySelector("h2");
-    h.firstChild.textContent=pl[1];
-    if(pl[2]){const n=document.createElement("span");n.className="stepn";n.textContent=pl[2];h.insertBefore(n,h.firstChild)}
-    if(pl[3]){const o=document.createElement("span");o.className="optl";o.textContent="optional";h.insertBefore(o,h.querySelector(".tip")||null)}
-    const body=document.createElement("div");body.className="pbody";
+  const conv=$("convert"),all={};
+  conv.querySelectorAll(".panel").forEach(p=>{const h=p.querySelector("h2");if(h&&h.firstChild)all[h.firstChild.textContent.trim()]=p});
+  const need=["Drawing","Arrange and project","Placement","Bed photo","Colour in filled areas","Pen width and line weight","Pens (colours)","Pen height and speed","Pen positions on the bed","Ready to plot?","Step 1: mesh the paper (pen cartridge removed)","Step 2: G-code (pen cartridge fitted)","Printer"];
+  if(need.some(n=>!all[n])){console.error("layout: missing panel",need.filter(n=>!all[n]));return}
+  const mk=(title,tip)=>{const p=document.createElement("div");p.className="panel";const h=document.createElement("h2");h.textContent=title;p.appendChild(h);return p};
+  const title=(p,t)=>{p.querySelector("h2").firstChild.textContent=t};
+  /* split Placement: selected drawing / sheet and paper / pen offset */
+  const pl=all["Placement"],kids=Array.from(pl.children).slice(1),subs=kids.filter(k=>k.classList&&k.classList.contains("sub"));
+  const iP=kids.indexOf(subs[0]),iO=kids.indexOf(subs[1]);
+  const objP=mk("Selected drawing"),paperP=mk("Sheet and paper"),offP=mk("Pen offset from the nozzle");
+  kids.forEach((k,i)=>{if(k===subs[0]||k===subs[1])return;(i<iP?objP:i<iO?paperP:offP).appendChild(k)});
+  const hn=document.createElement("p");hn.className="hint";hn.textContent="Calibrate these with the calibration cross (Preview tab, G-code panel): measure where its centre lands and correct the offsets.";offP.insertBefore(hn,offP.children[1]);
+  /* summary panel */
+  const sum=mk("Settings at a glance");sum.id="sumPanel";const sl=document.createElement("div");sl.id="sumList";sum.appendChild(sl);
+  /* Prepare: three columns */
+  const L=document.createElement("div"),C=document.createElement("div"),R=document.createElement("div");L.className="col";C.className="col";R.className="col";
+  const prep=all["Pen positions on the bed"];title(prep,"Bed");
+  const cv=$("cvWrap"),host=document.createElement("div");host.id="prepHost";cv.parentNode.insertBefore(host,cv);host.appendChild(cv);
+  const sim=$("simRow");
+  title(all["Drawing"],"Drawing");title(all["Arrange and project"],"Arrange, flip and save");title(all["Bed photo"],"Photo of the bed");
+  L.append(all["Drawing"],all["Arrange and project"],all["Bed photo"]);
+  C.append(prep);
+  R.append(objP,sum,all["Ready to plot?"]);
+  const wsEl=document.createElement("div");wsEl.className="ws";wsEl.append(L,C,R);conv.appendChild(wsEl);
+  [[all["Drawing"],true,1],[all["Arrange and project"],false,0],[all["Bed photo"],false,0]].forEach(x=>{
+    const p=x[0],h=p.querySelector("h2"),body=document.createElement("div");body.className="pbody";
     while(h.nextSibling)body.appendChild(h.nextSibling);p.appendChild(body);
-    const ch=document.createElement("span");ch.className="chev";h.appendChild(ch);
-    p.classList.add("fold");p.dataset.key=pl[0];
-    const open=saved[pl[0]]!==undefined?saved[pl[0]]:!!pl[4];
-    const set=(o,keep)=>{p.classList.toggle("shut",!o);body.hidden=!o;if(!keep){saved[pl[0]]=o;try{localStorage.setItem("q2ux",JSON.stringify(saved))}catch(e){}}};
-    set(open,true);p._set=set;
+    if(x[2]){const n=document.createElement("span");n.className="stepn";n.textContent=x[2];h.insertBefore(n,h.firstChild)}
+    const ch=document.createElement("span");ch.className="chev";h.appendChild(ch);p.classList.add("fold");
+    let sv={};try{sv=JSON.parse(localStorage.getItem("q2ux")||"{}")}catch(e){}
+    const key=h.textContent;const set=(o,keep)=>{p.classList.toggle("shut",!o);body.hidden=!o;if(!keep){sv[key]=o;try{localStorage.setItem("q2ux",JSON.stringify(sv))}catch(e){}}};
+    set(sv[key]!==undefined?sv[key]:x[1],true);p._set=set;
     h.addEventListener("click",e=>{if(e.target.closest(".tip"))return;set(body.hidden)});
-    col.insertBefore(p,anchor.nextSibling);anchor=p;panels.push(p);
   });
-  $("foldAll").addEventListener("click",()=>panels.forEach(p=>p._set(true)));
-  $("foldNone").addEventListener("click",()=>panels.forEach(p=>p._set(false)));
-  window.__goTo=id=>{const el=$(id);if(!el)return;const p=el.closest(".panel.fold");if(p&&p._set)p._set(true);setTimeout(()=>{el.scrollIntoView({block:"nearest",behavior:"smooth"});if(el.focus)el.focus()},60)};
-  /* drop zone */
-  const dz=$("dz"),fi=$("file");
-  dz.addEventListener("click",()=>fi.click());
-  dz.addEventListener("keydown",e=>{if(e.key==="Enter"||e.key===" "){e.preventDefault();fi.click()}});
-  ["dragenter","dragover"].forEach(t=>dz.addEventListener(t,e=>{e.preventDefault();dz.classList.add("over")}));
-  ["dragleave","drop"].forEach(t=>dz.addEventListener(t,e=>{e.preventDefault();dz.classList.remove("over")}));
-  dz.addEventListener("drop",e=>{const fs=Array.from(e.dataTransfer.files||[]).filter(f=>/\.svg$/i.test(f.name)||f.type==="image/svg+xml");if(!fs.length)return;
-    const dt=new DataTransfer();fs.forEach(f=>dt.items.add(f));fi.files=dt.files;fi.dispatchEvent(new Event("change",{bubbles:true}))});
+  /* Preview: simulation on the left, G-code on the right */
+  const pm=$("prevMain"),ps=$("prevSide"),simP=mk("Simulation");const ph=document.createElement("div");ph.id="prevHost";simP.appendChild(ph);
+  const scrub=document.createElement("input");scrub.type="range";scrub.id="simScrub";scrub.min=0;scrub.max=1000;scrub.value=0;
+  sim.insertBefore(scrub,sim.firstChild.nextSibling.nextSibling);sim.style.marginTop="10px";simP.appendChild(sim);
+    pm.append(simP);
+  const g=all["Step 2: G-code (pen cartridge fitted)"];title(g,"G-code");ps.append(g);
+  /* Device */
+  const dA=$("devA"),dB=$("devB"),pr=all["Printer"],mesh=all["Step 1: mesh the paper (pen cartridge removed)"];
+  title(pr,"Printer connection");title(mesh,"Bed mesh for the paper (pen cartridge removed)");
+  const st=mk("Printer status");st.id="devStatus";st.innerHTML='<h2>Printer status</h2><div class="row"><span class="pill" id="dPill"><i></i><span id="dPillTxt">not checked</span></span><button class="btn" id="dRefresh">Refresh</button><label style="flex-direction:row;align-items:center;gap:6px;font-size:12.5px;color:var(--muted)"><input type="checkbox" id="dAuto"> Check every 15 s</label></div><div class="kv" id="dKv"></div>';
+  const con=mk("G-code console");con.innerHTML='<h2>G-code console</h2><div class="row" style="margin-bottom:8px"><button class="btn" data-q="G28">Home all</button><button class="btn" data-q="M84">Motors off</button><button class="btn" data-q="FIRMWARE_RESTART">Firmware restart</button></div><div class="row"><input type="text" id="conIn" placeholder="e.g. G28 or PEN_TOUCH" style="flex:1;width:auto;text-align:left;font-family:var(--font-mono)"><button class="btn primary" id="conSend">Send</button></div><pre id="conLog"></pre><p class="hint">Runs on the printer through the local helper. Home first if Klipper says the axes are not homed.</p>';
+  dA.append(st,pr);dB.append(mesh,con);
+  $("bStatus").parentNode.hidden=true;const si=document.createElement("p");si.className="hint";si.id="sendInfo";pr.querySelector(".fields").after(si);
+  /* Settings pages */
+  const pages=[["sheet","Sheet and paper","Size, position, margins",[paperP]],["pen","Pen and machine","Offsets, z_draw, speeds",[offP,all["Pen height and speed"]]],
+    ["fill","Fill and shading","Colour in filled areas",[all["Colour in filled areas"]]],["line","Pen width and lines","Line weight, solid fills",[all["Pen width and line weight"]]],["pens","Several pens","Colour to pen assignment",[all["Pens (colours)"]]]];
+  const sn=$("settNav"),sb=$("settBody");
+  const hd=document.createElement("div");hd.className="hd";hd.textContent="Settings";sn.appendChild(hd);
+  pages.forEach(pg=>{
+    const b=document.createElement("button");b.type="button";b.dataset.cat=pg[0];b.innerHTML=pg[1]+"<small>"+pg[2]+"</small>";b.addEventListener("click",()=>selCat(pg[0]));sn.appendChild(b);
+    const d=document.createElement("div");d.className="page";d.dataset.cat=pg[0];pg[3].forEach(p=>d.appendChild(p));sb.appendChild(d);
+  });
+  let c0="sheet";try{c0=localStorage.getItem("q2cat")||"sheet"}catch(e){}
+  selCat(pages.some(p=>p[0]===c0)?c0:"sheet");
 })();
+/* tabs: put the canvas where it is being used */
+document.querySelectorAll("nav button").forEach(b=>b.addEventListener("click",()=>{if(b.dataset.tab==="convert"||b.dataset.tab==="prev")hostCanvas();if(b.dataset.tab==="dev")devRefresh(true)}));
+/* download + info on the G-code panel */
+(function(){
+  const cp=$("copy");if(!cp)return;
+  const d=document.createElement("button");d.className="btn";d.id="bDl";d.textContent="Download .gcode";cp.after(d);
+  d.addEventListener("click",()=>{const t=$("out").value;if(!t){return}const a=document.createElement("a");a.href=URL.createObjectURL(new Blob([t],{type:"text/plain"}));a.download=(($("pName").value||"plot.gcode").replace(/[^\w.\-]+/g,"_"));document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove()},500)});
+  const info=document.createElement("p");info.className="hint";info.id="gcInfo";$("out").after(info);
+})();
+/* simulation scrubber */
+(function(){
+  const sc=$("simScrub");if(!sc)return;
+  sc.addEventListener("input",()=>{
+    if(!sim){const s0=simBuild();if(!s0)return;sim=s0;sim.paused=true;$("simGo").textContent="▶ Resume"}
+    sim.paused=true;$("simGo").textContent="▶ Resume";sim.t=sim.T*sc.value/1000;repaint();simLabel();
+  });
+  const old=window.requestAnimationFrame;
+  setInterval(()=>{if(sim&&!sim.paused&&sim.T>0)sc.value=Math.round(1000*sim.t/sim.T);if(!sim)sc.value=0},120);
+})();
+/* ---------- printer status (top bar + Device tab) ---------- */
+let devTimer=null;
+function setPrn(kind,txt,det){
+  $("navDot").className=kind;$("navTxt").textContent=txt;$("dPill").className="pill "+(kind==="on"?"on":kind==="off"?"off":"");$("dPillTxt").textContent=txt;
+  const kv=$("dKv");kv.innerHTML="";(det||[]).forEach(r=>{const a=document.createElement("span"),b=document.createElement("span");a.textContent=r[0];b.textContent=r[1];kv.append(a,b)});
+}
+async function devRefresh(quiet){
+  if(!$("pIp").value.trim()){setPrn("","Printer: no address",[["Address","Enter the printer address below"]]);return}
+  setPrn("busy","Checking ...");
+  try{
+    const j=await api("/api/status"),s=j.status||{};
+    const pos=s.toolhead&&s.toolhead.position?s.toolhead.position.slice(0,3).map(v=>v.toFixed(1)).join(", "):"?";
+    const prof=s.bed_mesh&&s.bed_mesh.profiles?Object.keys(s.bed_mesh.profiles):[];
+    const state=s.print_stats?s.print_stats.state:"?";
+    const rows=[["State",state],["Homed",(s.toolhead&&s.toolhead.homed_axes)||"none"],["Position (XYZ)",pos],["Plot mesh",prof.includes("plot")?"plot ready":"none"]];
+    if(s.print_stats&&s.print_stats.filename)rows.push(["File",s.print_stats.filename]);
+    setPrn("on","Printer: online ("+state+")",rows);
+  }catch(e){setPrn("off","Printer: not reachable",[["Problem",e.message]]);}
+}
+$("navPrn").addEventListener("click",()=>showTab("dev"));
+$("navPrn").addEventListener("keydown",e=>{if(e.key==="Enter")showTab("dev")});
+$("dRefresh").addEventListener("click",()=>devRefresh());
+$("bStatus").addEventListener("click",()=>devRefresh());
+$("dAuto").addEventListener("change",()=>{clearInterval(devTimer);try{localStorage.setItem("q2auto",$("dAuto").checked?"1":"")}catch(e){}if($("dAuto").checked){devRefresh();devTimer=setInterval(()=>{if(!document.hidden)devRefresh()},15000)}});
+try{if(localStorage.getItem("q2auto")){$("dAuto").checked=true;devTimer=setInterval(()=>{if(!document.hidden)devRefresh()},15000)}}catch(e){}
+setTimeout(()=>{if($("pIp").value.trim())devRefresh()},600);
+/* console */
+async function conRun(cmd){
+  cmd=cmd.trim();if(!cmd)return;const log=$("conLog");log.textContent+="> "+cmd+"\n";log.scrollTop=1e9;
+  try{await api("/api/gcode",{script:cmd});log.textContent+="  sent\n"}catch(e){log.textContent+="  error: "+e.message+"\n"}
+  log.scrollTop=1e9;
+}
+$("conSend").addEventListener("click",()=>{const v=$("conIn").value;$("conIn").value="";conRun(v)});
+$("conIn").addEventListener("keydown",e=>{if(e.key==="Enter"){e.preventDefault();$("conSend").click()}});
+document.querySelectorAll("#devB [data-q]").forEach(b=>b.addEventListener("click",()=>conRun(b.dataset.q)));
+/* ---------- ready-to-plot checklist and settings summary ---------- */
+function renderSummary(o){
+  const l=$("sumList");if(!l)return;
+  const fm=["Outlines only","Fill dark areas","Fill every filled area","Tone fill"][o.fillMode|0]||"";
+  const rows=[
+    ["Sheet",PAPER_NAME+" "+PAPER_W+" × "+PAPER_H+" mm, margin "+o.margin,"sheet"],
+    ["Pen",o.penW+" mm tip, z_draw "+o.zDraw+", lift "+o.zLift,"pen"],
+    ["Fill",fm+(o.autoGap?" (solid)":""),"fill"],
+    ["Line weight",(o.lineOv>0?"all lines "+o.lineOv+" mm":o.lwUse?"from the drawing":"off"),"line"],
+    ["Pens",$("multiPen").checked?o.penCount+" pens by colour":"one pen","pens"]
+  ];
+  l.innerHTML="";
+  rows.forEach(r=>{const d=document.createElement("div");d.className="sumrow";d.innerHTML="<span>"+r[0]+"</span><span></span>";d.children[1].textContent=r[1];
+    const b=document.createElement("button");b.type="button";b.textContent="Edit";b.addEventListener("click",()=>{showTab("sett");selCat(r[2])});d.appendChild(b);l.appendChild(d)});
+}
 function renderReady(){
   const ul=$("readyList");if(!ul)return;
   const o=readOpts(),has=items.length>0,fits=has&&curOut.length>0,zOk=o.zDraw>0,photo=!!measFwd;
+  try{renderSummary(o)}catch(e){}
+  const sI=$("sendInfo");if(sI){const t=$("out").value;sI.textContent=t?("Will send: "+($("pName").value||"plot.gcode")+" ("+t.split("\n").length+" lines, "+(t.length/1024).toFixed(1)+" KB)"):"Nothing to send yet: load a drawing first."}
+  const gi=$("gcInfo");if(gi){const t=$("out").value;gi.textContent=t?(t.split("\n").length+" lines, "+(t.length/1024).toFixed(1)+" KB"):""}
   const rows=[
-    [has?"ok":"",has?"Drawing loaded":"Load a drawing",has?"":"Drop an SVG into step 1",has?"":"file"],
+    [has?"ok":"",has?"Drawing loaded":"Load a drawing",has?"":"Drop an SVG into the Drawing box","dz"],
     [!has?"":fits?"ok":"bad",fits?"Fits inside the pen's reach":(has?"Doesn't fit yet":"Fits inside the pen's reach"),has&&!fits?"Move or shrink it":"","w"],
     [zOk?"ok":"bad",zOk?"Pen height (z_draw) entered":"Pen height (z_draw) is still 0",zOk?"":"Find it with PEN_TOUCH, then enter it","zDraw"],
-    [photo?"ok":"","Bed photo aligned",photo?"":"Optional. Helps place the drawing exactly","bAuto"],
-    [meshDone?"ok":"","Paper meshed (pen cartridge removed)",meshDone?"":"Step 1, once per sheet","meshCmd"]
+    [photo?"ok":"","Bed photo aligned",photo?"":"Optional. Helps place the drawing exactly","bRegFind"],
+    [meshDone?"ok":"","Paper meshed (pen cartridge removed)",meshDone?"":"Device tab, once per sheet","bMesh"]
   ];
   ul.innerHTML="";
   rows.forEach(r=>{const li=document.createElement("li");li.className=r[0];
@@ -2442,7 +2605,7 @@ function renderReady(){
     if(r[3]&&r[3]!=="w"&&r[0]!=="ok"){const b=document.createElement("button");b.type="button";b.className="go";b.textContent="Go";b.addEventListener("click",()=>window.__goTo(r[3]));li.appendChild(b)}
     ul.appendChild(li)});
   const need=has&&fits&&zOk;
-  $("readySum").textContent=need?"Ready: mesh the paper, fit the pen, then send the G-code.":"Finish the items marked ! or empty above.";
+  $("readySum").textContent=need?"Ready: open the Device tab to mesh the paper and send the G-code.":"Finish the items marked ! or empty above.";
   $("readySum").style.color=need?"var(--ok)":"var(--muted)";
 }
 renderReady();
