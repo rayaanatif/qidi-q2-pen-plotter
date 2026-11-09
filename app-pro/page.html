@@ -435,11 +435,66 @@ nav{align-items:stretch}
       <p class="hint" id="imHint">Load a PNG, JPEG, GIF or WebP. It is turned into SVG paths right here, and nothing is uploaded anywhere. Tune it until the right-hand preview looks good, then send it to the plotter.</p>
       <label style="margin-top:10px">Mode
         <select id="imMode" style="width:100%">
-          <option value="outline">Outline shapes: edges of dark areas (logos, silhouettes)</option>
-          <option value="edges">Photo edges: line detection on a photo</option>
-          <option value="tone">Tone: shaded regions, for the Tone fill</option>
+          <optgroup label="Trace (logos, line art)">
+            <option value="outline">Outline shapes: edges of dark areas</option>
+            <option value="edges">Photo edges: line detection on a photo</option>
+            <option value="tone">Tone: shaded regions, for the Tone fill</option>
+          </optgroup>
+          <optgroup label="Drawing styles (photos)">
+            <option value="hatch">Hatching: cross-hatch layers by tone</option>
+            <option value="squiggle">Squiggles: wavy lines, tighter where dark</option>
+            <option value="stipple">Stipples: dots, denser where dark</option>
+            <option value="flow">Flow lines: strokes that follow the shapes</option>
+            <option value="spiral">Spiral: one spiral that wobbles with tone</option>
+            <option value="halftone">Halftone: circles sized by tone</option>
+          </optgroup>
         </select>
       </label>
+    </div>
+    <div class="panel" id="imStyleP">
+      <h2>Style settings</h2>
+      <div class="fields">
+        <label data-modes="hatch squiggle stipple flow spiral halftone">Line / dot spacing (mm)<input type="number" id="imSp" value="1.5" step="0.1" min="0.2"></label>
+        <label data-modes="hatch squiggle flow halftone">Angle (&deg;)<input type="number" id="imAng" value="45" step="5"></label>
+        <label data-modes="hatch">Hatch directions (1-4)<input type="number" id="imHL" value="3" step="1" min="1" max="4"></label>
+        <label data-modes="squiggle spiral">Wave height (1 = fills the gap)<input type="number" id="imAmp" value="1" step="0.1" min="0.1" max="3"></label>
+        <label data-modes="squiggle spiral">Wavelength (mm)<input type="number" id="imWl" value="2" step="0.25" min="0.4"></label>
+        <label data-modes="stipple">Dot size (mm)<input type="number" id="imDot" value="0.4" step="0.1" min="0.1"></label>
+        <label data-modes="hatch squiggle stipple flow spiral halftone">Ink amount (1 = normal)<input type="number" id="imGain" value="1" step="0.1" min="0.2" max="3"></label>
+      </div>
+    </div>
+    <div class="panel" id="imPensP">
+      <h2>Colour pens</h2>
+      <label>Split the picture into
+        <select id="imSep" style="width:100%">
+          <option value="single">One pen (black)</option>
+          <option value="cmyk">CMYK: cyan, magenta, yellow, black</option>
+          <option value="rgbk">Red, green, blue and black</option>
+          <option value="custom">My own pen colours</option>
+        </select>
+      </label>
+      <div id="imCust" hidden style="margin-top:8px">
+        <div class="row" style="gap:12px">
+          <label style="flex-direction:row;align-items:center;gap:6px"><input type="checkbox" id="imPu1" checked><input type="color" id="imP1" value="#1d4ed8"></label>
+          <label style="flex-direction:row;align-items:center;gap:6px"><input type="checkbox" id="imPu2" checked><input type="color" id="imP2" value="#dc2626"></label>
+          <label style="flex-direction:row;align-items:center;gap:6px"><input type="checkbox" id="imPu3"><input type="color" id="imP3" value="#16a34a"></label>
+          <label style="flex-direction:row;align-items:center;gap:6px"><input type="checkbox" id="imPu4" checked><input type="color" id="imP4" value="#000000"></label>
+        </div>
+      </div>
+      <p class="hint" id="imSepHint">Each colour becomes its own set of lines at a different angle. On the Convert tab, "Separate pens by colour" gives you one G-code file per pen.</p>
+    </div>
+    <div class="panel" id="imToneP">
+      <h2>Tone and output size</h2>
+      <div class="fields">
+        <label>Brightness (-100 to 100)<input type="number" id="imBri" value="0" step="5" min="-100" max="100"></label>
+        <label>Contrast (-100 to 100)<input type="number" id="imCon" value="0" step="5" min="-100" max="100"></label>
+        <label>Gamma (below 1 = darker)<input type="number" id="imGam" value="1" step="0.1" min="0.2" max="3"></label>
+        <label>Output width (mm)<input type="number" id="imWmm" value="150" step="5" min="10"></label>
+      </div>
+      <label style="margin-top:8px">Crop to
+        <select id="imCrop" style="width:100%"><option value="none">The whole picture</option><option value="ellipse">An ellipse</option></select>
+      </label>
+      <p class="hint" id="imSizeNote"></p>
     </div>
     <div class="panel">
       <h2>Tuning</h2>
@@ -467,7 +522,7 @@ nav{align-items:stretch}
       </div>
       <div class="stats" id="imStats"></div>
       <div id="imMsg"></div>
-      <div class="row" style="margin-top:10px"><button class="btn primary" id="imSend" disabled>Send to the plotter</button><span class="small">It becomes a drawing you can move, scale and rotate on the Convert tab.</span></div>
+      <div class="row" style="margin-top:10px"><button class="btn primary" id="imSend" disabled>Send to the plotter</button><button class="btn" id="imDl" disabled>Download SVG</button><span class="small">It becomes a drawing you can move, scale and rotate on the Convert tab.</span></div>
     </div>
   </div>
 </div>
@@ -1222,7 +1277,7 @@ function imGray(){
   c.fillStyle="#fff";c.fillRect(0,0,w,h);c.drawImage(im,0,0,w,h);
   const d=c.getImageData(0,0,w,h).data,g=new Uint8Array(w*h);
   for(let i=0;i<w*h;i++)g[i]=Math.round(0.299*d[i*4]+0.587*d[i*4+1]+0.114*d[i*4+2]);
-  IM.w=w;IM.h=h;IM.gray=g;IM.mx=mx;
+  IM.w=w;IM.h=h;IM.gray=g;IM.mx=mx;IM.rgb=d;
   const sv=$("imSrc");sv.width=w;sv.height=h;const sc2=sv.getContext("2d");sc2.fillStyle="#fff";sc2.fillRect(0,0,w,h);sc2.drawImage(im,0,0,w,h);
 }
 function boxBlur(src,w,h,r){
@@ -1395,13 +1450,18 @@ function imRun(){
   if(!IM.gray||IM.mx!==Math.max(100,Math.min(1600,parseInt($("imMax").value)||700)))imGray();
   const w=IM.w,h=IM.h,inv=$("imInv").checked;
   let g=boxBlur(IM.gray,w,h,Math.max(0,Math.min(8,parseInt($("imBlur").value)||0)));
+  {const LU=imLUT();const g1=new Uint8Array(g.length);for(let i=0;i<g.length;i++)g1[i]=LU[g[i]];g=g1}
   if(inv){const g2=new Uint8Array(g.length);for(let i=0;i<g.length;i++)g2[i]=255-g[i];g=g2}
+  if($("imCrop").value==="ellipse"){const cx=(w-1)/2,cy=(h-1)/2,g3=new Uint8Array(g);for(let y=0;y<h;y++)for(let x=0;x<w;x++){const u=(x-cx)/(w/2),v=(y-cy)/(h/2);if(u*u+v*v>1)g3[y*w+x]=255}g=g3}
+  const NEWM=["hatch","squiggle","stipple","flow","spiral","halftone"],kmm=(parseFloat($("imWmm").value)||150)/w,penPx=Math.max(0.05,parseFloat($("penW").value)||0.5)/kmm;
   const thr=Math.max(1,Math.min(254,parseFloat($("imThr").value)||128)),minA=Math.max(0,parseFloat($("imMin").value)||0);
   const smooth=Math.max(0,Math.min(3,parseInt($("imSmooth").value)||0)),simp=Math.max(0,parseFloat($("imSimp").value)||0);
   const fin=(p,closed)=>{if(smooth)p=chaikin(p,smooth,closed);return simplify(p,simp)};
-  const res={lines:[],fills:[]};let pts=0;
+  const res={lines:[],fills:[],layers:null};let pts=0;
   const mkMask=()=>{const m=new Uint8Array(w*h);for(let i=0;i<m.length;i++)m[i]=g[i]<thr?1:0;return m};
-  if(mode==="outline"){
+  if(NEWM.indexOf(mode)>=0){
+    res.layers=imLayers(mode,g,w,h,kmm);
+  }else if(mode==="outline"){
     const m=despeckle(mkMask(),w,h,minA);
     contours(m,w,h).forEach(p=>res.lines.push(fin(p,true)));
   }else if(mode==="edges"){
@@ -1425,29 +1485,200 @@ function imRun(){
     }
   }
   res.lines.forEach(p=>pts+=p.length);res.fills.forEach(f=>f.rings.forEach(p=>pts+=p.length));
+  let nLines=res.lines.length,drawPx=0;res.lines.forEach(p=>drawPx+=plen(p));
+  if(res.layers)res.layers.forEach(L=>{nLines+=L.lines.length;L.lines.forEach(p=>{pts+=p.length;drawPx+=plen(p)})});
   /* SVG text */
   const f1=v=>(Math.round(v*10)/10).toString(),dstr=(p,closed)=>"M"+p.map(q=>f1(q[0])+" "+f1(q[1])).join("L")+(closed?"Z":"");
   let body="";
-  if(res.lines.length){body+='<path d="'+res.lines.map(p=>dstr(p,mode==="outline")).join("")+'" fill="none" stroke="#000000" stroke-width="1" stroke-linejoin="round" stroke-linecap="round"/>'}
+  const SW=f1(penPx*10)/10||0.5;
+  if(res.lines.length){body+='<path d="'+res.lines.map(p=>dstr(p,mode==="outline")).join("")+'" fill="none" stroke="#000000" stroke-width="'+SW+'" stroke-linejoin="round" stroke-linecap="round"/>'}
+  if(res.layers)res.layers.forEach(L=>{if(L.lines.length)body+='<path d="'+L.lines.map(p=>dstr(p,L.closed)).join("")+'" fill="none" stroke="'+L.col+'" stroke-width="'+SW+'" stroke-linejoin="round" stroke-linecap="round"/>'});
   res.fills.forEach(f=>{body+='<path d="'+f.rings.map(p=>dstr(p,true)).join("")+'" fill="rgb('+f.gray+','+f.gray+','+f.gray+')" fill-rule="evenodd" stroke="none"/>'});
-  IM.svg='<svg xmlns="http://www.w3.org/2000/svg" width="'+w+'" height="'+h+'" viewBox="0 0 '+w+' '+h+'">'+body+'</svg>';
+  IM.svg='<svg xmlns="http://www.w3.org/2000/svg" width="'+f1(w*kmm*10)/10+'mm" height="'+f1(h*kmm*10)/10+'mm" viewBox="0 0 '+w+' '+h+'">'+body+'</svg>';
   /* result preview */
   const rv=$("imRes");rv.width=w;rv.height=h;const c=rv.getContext("2d");c.fillStyle="#fff";c.fillRect(0,0,w,h);
   c.lineJoin="round";c.lineCap="round";
   res.fills.forEach(f=>{c.fillStyle="rgb("+f.gray+","+f.gray+","+f.gray+")";c.beginPath();f.rings.forEach(p=>{p.forEach((q,i)=>i?c.lineTo(q[0],q[1]):c.moveTo(q[0],q[1]));c.closePath()});c.fill("evenodd")});
-  c.strokeStyle="#000";c.lineWidth=Math.max(1,w/600);
+  c.strokeStyle="#000";c.lineWidth=Math.max(res.layers?0.7:1,res.layers?penPx:w/600);
   res.lines.forEach(p=>{c.beginPath();p.forEach((q,i)=>i?c.lineTo(q[0],q[1]):c.moveTo(q[0],q[1]));c.stroke()});
-  $("imStats").innerHTML="<span><b>image</b> "+w+" × "+h+" px</span><span><b>lines</b> "+res.lines.length+"</span><span><b>regions</b> "+res.fills.reduce((a,f)=>a+f.rings.length,0)+"</span><span><b>points</b> "+pts+"</span>";
-  const empty=!res.lines.length&&!res.fills.length;
-  $("imSend").disabled=empty;
+  if(res.layers){c.globalCompositeOperation="multiply";}
+  if(res.layers)res.layers.forEach(L=>{c.strokeStyle=L.col;L.lines.forEach(p=>{c.beginPath();p.forEach((q,i)=>i?c.lineTo(q[0],q[1]):c.moveTo(q[0],q[1]));if(L.closed)c.closePath();c.stroke()})});
+  c.globalCompositeOperation="source-over";
+  $("imStats").innerHTML="<span><b>image</b> "+w+" × "+h+" px</span><span><b>lines</b> "+nLines+"</span><span><b>draw</b> "+Math.round(drawPx*kmm)+" mm</span><span><b>regions</b> "+res.fills.reduce((a,f)=>a+f.rings.length,0)+"</span><span><b>points</b> "+pts+"</span>";
+  const empty=!nLines&&!res.fills.length;
+  $("imSend").disabled=empty;$("imDl").disabled=empty;$("imSizeNote").textContent="Result: "+(w*kmm).toFixed(0)+" × "+(h*kmm).toFixed(0)+" mm. Spacing and pen width are in real millimetres, so the plot comes out at this size.";
   $("imMsg").innerHTML="";if(empty){const d=document.createElement("div");d.className="msg err";d.textContent="Nothing was found. Try a different cut-off, lower the edge sensitivity, or tick Invert.";$("imMsg").appendChild(d)}
+}
+
+/* ---------- drawing styles: hatching, squiggles, stipples, flow lines, spiral, halftone ---------- */
+function imLUT(){
+  const b=(parseFloat($("imBri").value)||0)/100*255,cn=Math.max(-99,Math.min(99,parseFloat($("imCon").value)||0)),gm=Math.max(0.2,Math.min(3,parseFloat($("imGam").value)||1));
+  const f=(259*(cn+255))/(255*(259-cn)),L=new Uint8Array(256);
+  for(let i=0;i<256;i++){let v=Math.pow(i/255,gm)*255;v=f*(v-128)+128+b;L[i]=Math.max(0,Math.min(255,Math.round(v)))}
+  return L;
+}
+function rng32(seed){let a=seed>>>0;return()=>{a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
+function imLayers(mode,g,w,h,kmm){
+  const sep=$("imSep").value,blur=Math.max(0,Math.min(8,parseInt($("imBlur").value)||0)),LU=imLUT(),inv=$("imInv").checked;
+  const gain=Math.max(0.2,Math.min(3,parseFloat($("imGain").value)||1)),base=parseFloat($("imAng").value)||0;
+  const ell=$("imCrop").value==="ellipse",cx=(w-1)/2,cy=(h-1)/2,inside=(x,y)=>{const u=(x-cx)/(w/2),v=(y-cy)/(h/2);return u*u+v*v<=1};
+  const defs=[];
+  const mkD=fn=>{const D=new Float32Array(w*h);for(let y=0;y<h;y++)for(let x=0;x<w;x++){const i=y*w+x;let v=ell&&!inside(x,y)?0:fn(i);D[i]=Math.max(0,Math.min(1,v*gain))}return D};
+  if(sep==="single"){defs.push({col:"#000000",ang:base,D:mkD(i=>1-g[i]/255)})}
+  else{
+    const rgb=IM.rgb,ch=[0,1,2].map(c=>{const a=new Uint8Array(w*h);for(let i=0;i<w*h;i++)a[i]=rgb[i*4+c];return boxBlur(a,w,h,blur)});
+    const P=i=>{let r=LU[ch[0][i]],gg=LU[ch[1][i]],b=LU[ch[2][i]];if(inv){r=255-r;gg=255-gg;b=255-b}return [r,gg,b]};
+    if(sep==="cmyk"){
+      const K=i=>{const p=P(i);return 1-Math.max(p[0],p[1],p[2])/255};
+      const part=(i,k)=>{const p=P(i),m=Math.max(p[0],p[1],p[2])/255;if(m<=0.001)return 0;return (m-p[k]/255)/m};
+      defs.push({col:"#00aeef",ang:base+15,D:mkD(i=>part(i,0)*(1-K(i)*0.6))},{col:"#ec008c",ang:base+75,D:mkD(i=>part(i,1)*(1-K(i)*0.6))},
+        {col:"#ffd100",ang:base,D:mkD(i=>part(i,2)*(1-K(i)*0.6))},{col:"#000000",ang:base+45,D:mkD(i=>Math.max(0,K(i)*1.15-0.1))});
+    }else if(sep==="rgbk"){
+      const one=k=>i=>{const p=P(i),o=[p[(k+1)%3],p[(k+2)%3]];return Math.max(0,p[k]-Math.max(o[0],o[1]))/255*1.6};
+      defs.push({col:"#dc2626",ang:base+15,D:mkD(one(0))},{col:"#16a34a",ang:base+75,D:mkD(one(1))},{col:"#1d4ed8",ang:base,D:mkD(one(2))},
+        {col:"#000000",ang:base+45,D:mkD(i=>{const p=P(i),mx=Math.max(p[0],p[1],p[2]),mn=Math.min(p[0],p[1],p[2]);return (1-mx/255)*0.9+((mx-mn)<40?(1-(0.299*p[0]+0.587*p[1]+0.114*p[2])/255)*0.3:0)})});
+    }else{
+      const pal=[];for(let k=1;k<=4;k++)if($("imPu"+k).checked){const hx=$("imP"+k).value,n=parseInt(hx.slice(1),16);pal.push({col:hx,c:[n>>16&255,n>>8&255,n&255]})}
+      if(!pal.length)pal.push({col:"#000000",c:[0,0,0]});
+      const near=new Int8Array(w*h),cov=new Float32Array(w*h);
+      for(let i=0;i<w*h;i++){const p=P(i);const dw=Math.hypot(255-p[0],255-p[1],255-p[2]);let bi=-1,bd=dw;
+        pal.forEach((q,k)=>{const d=Math.hypot(p[0]-q.c[0],p[1]-q.c[1],p[2]-q.c[2]);if(d<bd){bd=d;bi=k}});
+        near[i]=bi;cov[i]=bi<0?0:Math.min(1,dw/(dw+bd+1e-6))}
+      pal.forEach((q,k)=>defs.push({col:q.col,ang:base+k*30,D:mkD(i=>near[i]===k?cov[i]:0)}));
+    }
+  }
+  const sp=Math.max(0.2,parseFloat($("imSp").value)||1.2)/kmm,out=[];
+  defs.forEach((d,li)=>{
+    let lines,closed=false;
+    if(mode==="hatch")lines=genHatch(d.D,w,h,sp,d.ang,Math.max(1,Math.min(4,parseInt($("imHL").value)||3)));
+    else if(mode==="squiggle")lines=genSquiggle(d.D,w,h,sp,d.ang,parseFloat($("imAmp").value)||1,(parseFloat($("imWl").value)||2)/kmm);
+    else if(mode==="stipple"){lines=genStipple(d.D,w,h,sp,Math.max(0.1,parseFloat($("imDot").value)||0.4)/kmm,li+1);closed=true}
+    else if(mode==="flow")lines=genFlow(d.D,w,h,sp,d.ang,li+1);
+    else if(mode==="spiral")lines=genSpiral(d.D,w,h,sp,parseFloat($("imAmp").value)||1,(parseFloat($("imWl").value)||2)/kmm,li);
+    else{lines=genHalftone(d.D,w,h,sp,d.ang);closed=true}
+    const simp=Math.max(0,parseFloat($("imSimp").value)||0)*0.5;
+    if(simp>0&&!closed)lines=lines.map(p=>simplify(p,simp));
+    out.push({col:d.col,lines:lines.filter(p=>p.length>=2),closed:closed});
+  });
+  return out;
+}
+function dSamp(D,w,h,x,y){
+  if(x<0||y<0||x>w-1||y>h-1)return 0;
+  const x0=x|0,y0=y|0,x1=Math.min(w-1,x0+1),y1=Math.min(h-1,y0+1),fx=x-x0,fy=y-y0;
+  return D[y0*w+x0]*(1-fx)*(1-fy)+D[y0*w+x1]*fx*(1-fy)+D[y1*w+x0]*(1-fx)*fy+D[y1*w+x1]*fx*fy;
+}
+function genHatch(D,w,h,sp,ang,levels){
+  const out=[],cx=w/2,cy=h/2,R=Math.hypot(w,h)/2+2;
+  for(let k=0;k<levels;k++){
+    const a=(ang+k*180/levels)*Math.PI/180,ux=Math.cos(a),uy=Math.sin(a),nx=-uy,ny=ux,th=(k+1)/(levels+1)*0.85;
+    for(let s=-R,ln=0;s<=R;s+=sp,ln++){
+      let cur=null,gap=0;
+      for(let t=-R;t<=R;t+=0.7){
+        const x=cx+nx*s+ux*t,y=cy+ny*s+uy*t,v=dSamp(D,w,h,x,y);
+        if(v>th){if(!cur)cur=[];cur.push([x,y]);gap=0}
+        else if(cur){gap+=0.7;if(gap>2.5){if(cur.length>2)out.push([cur[0],cur[cur.length-1]]);cur=null}}
+      }
+      if(cur&&cur.length>2)out.push([cur[0],cur[cur.length-1]]);
+    }
+  }
+  return out;
+}
+function genSquiggle(D,w,h,sp,ang,amp,lam){
+  const out=[],cx=w/2,cy=h/2,R=Math.hypot(w,h)/2+2,a=ang*Math.PI/180,ux=Math.cos(a),uy=Math.sin(a),nx=-uy,ny=ux,A0=sp*0.55*amp;
+  for(let s=-R;s<=R;s+=sp){
+    let cur=null,ph=0;
+    for(let t=-R;t<=R;t+=0.8){
+      const x=cx+nx*s+ux*t,y=cy+ny*s+uy*t,v=dSamp(D,w,h,x,y);
+      if(v<0.04){if(cur&&cur.length>2)out.push(cur);cur=null;continue}
+      ph+=2*Math.PI*0.8*(0.4+2.6*v)/lam;const o=A0*v*Math.sin(ph);
+      if(!cur)cur=[];cur.push([x+nx*o,y+ny*o]);
+    }
+    if(cur&&cur.length>2)out.push(cur);
+  }
+  return out;
+}
+function genStipple(D,w,h,sp,dot,seed){
+  const rnd=rng32(1234+seed*77),cs=Math.max(1,sp*0.4),gw=Math.ceil(w/cs)+1,gh=Math.ceil(h/cs)+1,grid=new Map(),pts=[];
+  const tries=Math.min(1500000,Math.round(w*h/(sp*sp)*14));
+  for(let n=0;n<tries&&pts.length<70000;n++){
+    const x=rnd()*w,y=rnd()*h,v=dSamp(D,w,h,x,y);
+    if(v<0.05||rnd()>Math.pow(v,0.9))continue;
+    const rd=sp*(1.7-1.25*v),gx=(x/cs)|0,gy=(y/cs)|0,rc=Math.ceil(rd/cs);let ok=true;
+    for(let j=gy-rc;j<=gy+rc&&ok;j++)for(let i=gx-rc;i<=gx+rc&&ok;i++){const b=grid.get(j*gw+i);if(b)for(const q of b){if((q[0]-x)*(q[0]-x)+(q[1]-y)*(q[1]-y)<rd*rd){ok=false;break}}}
+    if(!ok)continue;
+    const key=gy*gw+gx;(grid.get(key)||grid.set(key,[]).get(key)).push([x,y]);pts.push([x,y]);
+  }
+  const r=dot/2,ring=[];for(let i=0;i<6;i++){const t=2*Math.PI*i/6;ring.push([Math.cos(t)*r,Math.sin(t)*r])}
+  return pts.map(p=>ring.map(q=>[p[0]+q[0],p[1]+q[1]]));
+}
+function fblur(a,w,h,r){
+  const t=new Float32Array(w*h),o=new Float32Array(w*h),n=2*r+1;
+  for(let y=0;y<h;y++){let s=0;const row=y*w;for(let x=-r;x<=r;x++)s+=a[row+Math.min(w-1,Math.max(0,x))];for(let x=0;x<w;x++){t[row+x]=s/n;s+=a[row+Math.min(w-1,x+r+1)]-a[row+Math.max(0,x-r)]}}
+  for(let x=0;x<w;x++){let s=0;for(let y=-r;y<=r;y++)s+=t[Math.min(h-1,Math.max(0,y))*w+x];for(let y=0;y<h;y++){o[y*w+x]=s/n;s+=t[Math.min(h-1,y+r+1)*w+x]-t[Math.max(0,y-r)*w+x]}}
+  return o;
+}
+function genFlow(D,w,h,sp,ang,seed){
+  const rnd=rng32(99+seed*31),sm=fblur(D,w,h,3),jxx=new Float32Array(w*h),jxy=new Float32Array(w*h),jyy=new Float32Array(w*h);
+  for(let y=1;y<h-1;y++)for(let x=1;x<w-1;x++){const i=y*w+x,gx=(sm[i+1]-sm[i-1])*0.5,gy=(sm[i+w]-sm[i-w])*0.5;jxx[i]=gx*gx;jxy[i]=gx*gy;jyy[i]=gy*gy}
+  const bxx=fblur(jxx,w,h,5),bxy=fblur(jxy,w,h,5),byy=fblur(jyy,w,h,5),c2=new Float32Array(w*h),s2=new Float32Array(w*h),a0=ang*Math.PI/180,bc=Math.cos(2*a0),bs=Math.sin(2*a0);
+  for(let i=0;i<w*h;i++){
+    const dd=bxx[i]-byy[i],e=Math.hypot(dd,2*bxy[i]),tr=bxx[i]+byy[i]+1e-9,coh=Math.min(1,e/tr*(tr>2e-5?1:tr/2e-5));
+    const th=0.5*Math.atan2(2*bxy[i],dd)+Math.PI/2; /* along the shapes, not across them */
+    c2[i]=coh*Math.cos(2*th)+(1-coh)*bc;s2[i]=coh*Math.sin(2*th)+(1-coh)*bs;
+  }
+  const cs=Math.max(1,sp*0.5),gw=Math.ceil(w/cs)+1,grid=new Map(),out=[];
+  const dsep=v=>sp*(1.6-1.1*v);
+  const close=(x,y,d)=>{const gx=(x/cs)|0,gy=(y/cs)|0,rc=Math.ceil(d/cs),d2=d*d;
+    for(let j=gy-rc;j<=gy+rc;j++)for(let i=gx-rc;i<=gx+rc;i++){const b=grid.get(j*gw+i);if(b)for(const q of b)if((q[0]-x)*(q[0]-x)+(q[1]-y)*(q[1]-y)<d2)return true}return false};
+  const dirAt=(x,y,px,py)=>{const i=(Math.min(h-1,Math.max(0,Math.round(y)))*w+Math.min(w-1,Math.max(0,Math.round(x))));const phi=0.5*Math.atan2(s2[i],c2[i]);let dx=Math.cos(phi),dy=Math.sin(phi);if(dx*px+dy*py<0){dx=-dx;dy=-dy}return [dx,dy]};
+  const seeds=[];for(let y=sp*0.5;y<h;y+=sp*0.7)for(let x=sp*0.5;x<w;x+=sp*0.7)seeds.push([x+(rnd()-0.5)*sp*0.5,y+(rnd()-0.5)*sp*0.5]);
+  for(let i=seeds.length-1;i>0;i--){const j=(rnd()*(i+1))|0;[seeds[i],seeds[j]]=[seeds[j],seeds[i]]}
+  const step=1.3;
+  for(const sd of seeds){
+    let v=dSamp(D,w,h,sd[0],sd[1]);if(v<0.06||close(sd[0],sd[1],dsep(v)))continue;
+    const trace=(sx,sy,dx0,dy0)=>{const pts=[];let x=sx,y=sy,dx=dx0,dy=dy0;
+      for(let n=0;n<420;n++){const d=dirAt(x,y,dx,dy);dx=d[0];dy=d[1];x+=dx*step;y+=dy*step;
+        if(x<0||y<0||x>w-1||y>h-1)break;const vv=dSamp(D,w,h,x,y);if(vv<0.05)break;if(close(x,y,dsep(vv)*0.65))break;pts.push([x,y])}
+      return pts};
+    const f=trace(sd[0],sd[1],1,0),b=trace(sd[0],sd[1],-1,0),line=b.reverse().concat([[sd[0],sd[1]]],f);
+    if(line.length<6)continue;
+    out.push(line);line.forEach(p=>{const key=((p[1]/cs)|0)*gw+((p[0]/cs)|0);(grid.get(key)||grid.set(key,[]).get(key)).push(p)});
+    if(out.length>30000)break;
+  }
+  return out;
+}
+function genSpiral(D,w,h,sp,amp,lam,li){
+  const cx=w/2,cy=h/2,Rm=Math.hypot(w,h)/2+2,out=[],A0=sp*0.55*amp;let cur=null,th=li*0.7,ph=0;
+  while(true){
+    const r=sp*th/(2*Math.PI);if(r>Rm)break;
+    const dth=Math.max(0.01,Math.min(0.25,0.9/Math.max(r,2)));
+    const bx=cx+Math.cos(th)*r,by=cy+Math.sin(th)*r,v=dSamp(D,w,h,bx,by);
+    if(v<0.03){if(cur&&cur.length>2)out.push(cur);cur=null}
+    else{ph+=2*Math.PI*(r*dth)*(0.4+2.6*v)/lam;const rr=r+A0*v*Math.sin(ph);if(!cur)cur=[];cur.push([cx+Math.cos(th)*rr,cy+Math.sin(th)*rr])}
+    th+=dth;
+  }
+  if(cur&&cur.length>2)out.push(cur);
+  return out;
+}
+function genHalftone(D,w,h,sp,ang){
+  const cell=sp*2.2,a=ang*Math.PI/180,ca=Math.cos(a),sa=Math.sin(a),cx=w/2,cy=h/2,R=Math.hypot(w,h)/2+cell,out=[];
+  for(let v=-R;v<=R;v+=cell)for(let u=-R;u<=R;u+=cell){
+    const x=cx+u*ca-v*sa,y=cy+u*sa+v*ca;if(x<0||y<0||x>w||y>h)continue;
+    const d=dSamp(D,w,h,x,y);if(d<0.06)continue;
+    let r=Math.sqrt(d)*cell*0.58;
+    for(;r>sp*0.28;r-=sp*0.62){const ring=[];const n=Math.max(8,Math.min(28,Math.round(r*1.4)));for(let i=0;i<n;i++){const t=2*Math.PI*i/n;ring.push([x+Math.cos(t)*r,y+Math.sin(t)*r])}out.push(ring)}
+  }
+  return out;
 }
 function imModeUI(){
   const m=$("imMode").value;
   document.querySelectorAll("#img [data-modes]").forEach(e=>{e.hidden=e.dataset.modes.split(" ").indexOf(m)<0});
+  const gen=["hatch","squiggle","stipple","flow","spiral","halftone"].indexOf(m)>=0;
+  $("imStyleP").hidden=!gen;$("imPensP").hidden=!gen;$("imCust").hidden=$("imSep").value!=="custom";
 }
 function imSchedule(){clearTimeout(IM.timer);IM.timer=setTimeout(()=>{try{imRun()}catch(e){$("imMsg").innerHTML="";const d=document.createElement("div");d.className="msg err";d.textContent="Couldn't trace this picture: "+e.message;$("imMsg").appendChild(d)}},250)}
-["imMode","imMax","imThr","imEdge","imLevels","imBlur","imMin","imSmooth","imSimp","imInv"].forEach(i=>$(i).addEventListener("input",()=>{if(i==="imMode")imModeUI();imSchedule()}));
+["imMode","imMax","imThr","imEdge","imLevels","imBlur","imMin","imSmooth","imSimp","imInv","imSp","imAng","imHL","imAmp","imWl","imDot","imGain","imSep","imP1","imP2","imP3","imP4","imPu1","imPu2","imPu3","imPu4","imBri","imCon","imGam","imWmm","imCrop"].forEach(i=>$(i).addEventListener("input",()=>{if(i==="imMode"||i==="imSep")imModeUI();imSchedule()}));
+$("imDl").addEventListener("click",()=>{if(!IM.svg)return;const a=document.createElement("a");a.href=URL.createObjectURL(new Blob([IM.svg],{type:"image/svg+xml"}));a.download=(IM.name||"image")+".svg";document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove()},500)});
 $("imAuto").addEventListener("click",()=>{if(!IM.gray)return;const g=boxBlur(IM.gray,IM.w,IM.h,Math.max(0,parseInt($("imBlur").value)||0));let v=otsu(g);if($("imInv").checked)v=255-v;$("imThr").value=v;imSchedule()});
 $("imFile").addEventListener("change",e=>{
   const f=e.target.files[0];if(!f)return;
