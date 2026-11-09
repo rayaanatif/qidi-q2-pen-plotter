@@ -10,6 +10,8 @@ You need Python 3.8 or newer (nothing else to install).
   Windows: install from python.org or the Microsoft Store (tick "Add python to PATH").
 
 What is new in Pro
+  Easier layout
+    The Convert page is now a numbered workflow: 1 Load your drawing (drop SVG files on the box), 2 Size and place it on the sheet. Less-used settings (arrange, photo, fills, pen width, several pens, machine settings) are collapsed sections: click a heading to open it, or use Expand all / Collapse all; the page remembers what you opened. The left settings and the right preview scroll separately, so the preview stays in view while you change settings. "Ready to plot?" under the preview ticks off drawing loaded, fits the pen's reach, z_draw entered, photo aligned and paper meshed, with a Go link on each open item.
   Photo alignment marks (no more corner tapping)
     1. Put the sheet on the bed. Under "Paper on the bed" set where it is and its size.
     2. Step 2, press "Make photo alignment marks" and plot that G-code with a black pen. It draws six ringed crosses just inside the sheet edges (inset set next to the button, default 7 mm) at exact bed positions, so the pen itself defines the reference. Keep your artwork inside the margins so a line does not touch a mark.

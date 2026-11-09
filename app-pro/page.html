@@ -106,6 +106,38 @@ canvas{border-radius:2px;border-color:#3a3a40}
 .tip:hover .tipbox,.tip:focus .tipbox,.tip:focus-within .tipbox{display:block}
 .tip .tipbox p{margin:0 0 7px}.tip .tipbox p:last-child{margin:0}
 .tip .tipbox.flip{left:auto;right:-6px}
+
+/* ---- Pro: guided layout ---- */
+@media(min-width:1000px){
+  #convert .grid{height:calc(100vh - 152px);min-height:480px}
+  #convert .grid>div{height:100%;overflow-y:auto;padding-right:6px;scroll-behavior:smooth}
+  #convert #cvWrap{max-width:calc(100vh - 360px);min-width:380px;margin:0 auto}
+}
+.panel.fold>h2{cursor:pointer;user-select:none}
+.panel.fold>h2:hover{color:#fff}
+.panel.fold.shut>h2{margin-bottom:0}
+.panel.fold>h2 .chev{order:3;width:9px;height:9px;border-right:2px solid var(--muted);border-bottom:2px solid var(--muted);transform:rotate(45deg) translate(-2px,-2px);transition:transform .15s;flex:none;margin-left:2px}
+.panel.fold.shut>h2 .chev{transform:rotate(-45deg)}
+.stepn{display:inline-flex;align-items:center;justify-content:center;width:19px;height:19px;border-radius:50%;background:var(--accent);color:#fff;font:600 11px var(--font-body);flex:none}
+.stepn.opt{background:transparent;border:1px solid var(--muted);color:var(--muted)}
+.optl{font-size:11px;font-weight:400;color:var(--muted);margin-left:2px}
+.foldbar{display:flex;gap:8px;align-items:center;margin:0 0 8px;font-size:12px;color:var(--muted)}
+.foldbar button{background:none;border:0;color:var(--accent);cursor:pointer;font:12px var(--font-body);padding:2px 4px}
+#dz{border:1.5px dashed var(--line);border-radius:4px;padding:16px 12px;text-align:center;cursor:pointer;color:var(--muted);font-size:13px;transition:border-color .15s,background .15s}
+#dz:hover,#dz.over{border-color:var(--accent);background:rgba(68,121,251,.08);color:var(--ink)}
+#dz b{color:var(--ink);font-weight:600}
+details.paste{margin-top:10px}
+details.paste summary{cursor:pointer;font-size:12.5px;color:var(--muted)}
+details.paste summary:hover{color:var(--ink)}
+#ready ul{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:5px}
+#ready li{display:flex;align-items:center;gap:8px;font-size:13px}
+#ready .ic{width:18px;height:18px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font:600 11px var(--font-body);flex:none;border:1px solid var(--line);color:var(--muted)}
+#ready .ok .ic{background:var(--ok);border-color:var(--ok);color:#10261d}
+#ready .bad .ic{background:var(--warn);border-color:var(--warn);color:#2b1308}
+#ready .go{margin-left:auto;background:none;border:0;color:var(--accent);cursor:pointer;font:12.5px var(--font-body);padding:0 2px}
+#ready .go:hover{text-decoration:underline}
+#ready .why{color:var(--muted);font-size:12px}
+#ready .sum{margin:8px 0 0;font-size:13px;font-weight:600}
 </style>
 
 </head><body>
@@ -127,12 +159,13 @@ canvas{border-radius:2px;border-color:#3a3a40}
   <div>
     <div class="panel">
       <h2>Drawing</h2>
-      <input type="file" id="file" accept=".svg,image/svg+xml" multiple>
+      <div id="dz" tabindex="0" role="button" aria-label="Choose SVG files"><b>Drop SVG files here</b> or click to choose<br><span style="font-size:12px">You can add several files, and add more later.</span></div>
+      <input type="file" id="file" accept=".svg,image/svg+xml" multiple hidden>
       <div id="itemList" style="margin:10px 0 0"></div>
       <div class="row" style="margin-top:8px"><button class="btn" id="bDup" disabled>Duplicate selected</button><button class="btn" id="bDel" disabled>Remove selected</button><button class="btn" id="bRotL" disabled title="Rotate 90 degrees anticlockwise">&#8634; 90&deg;</button><button class="btn" id="bRotR" disabled title="Rotate 90 degrees clockwise">&#8635; 90&deg;</button></div>
-      <p class="hint">Choose several files at once, or choose again to add more. Or paste SVG code:</p>
-      <textarea id="svgText" spellcheck="false" placeholder="&lt;svg ...&gt;"></textarea>
-      <p class="hint">Text must be converted to paths first (in Inkscape: Path, Object to Path).</p>
+      <details class="paste"><summary>Paste SVG code instead</summary>
+      <textarea id="svgText" spellcheck="false" placeholder="&lt;svg ...&gt;" style="margin-top:8px"></textarea>
+      <p class="hint">Text must be converted to paths first (in Inkscape: Path, Object to Path).</p></details>
     </div>
     <div class="panel">
       <h2>Arrange and project</h2>
@@ -289,6 +322,11 @@ canvas{border-radius:2px;border-color:#3a3a40}
         <label style="flex-direction:row;align-items:center;gap:6px">Speed<select id="simSpd"><option value="15">15&times;</option><option value="60" selected>60&times;</option><option value="200">200&times;</option><option value="600">600&times;</option></select></label>
         <span class="small" id="simInfo"></span></div>
       <div id="msg"></div>
+    </div>
+    <div class="panel" id="ready">
+      <h2>Ready to plot?</h2>
+      <ul id="readyList"></ul>
+      <p class="sum" id="readySum"></p>
     </div>
     <div class="panel">
       <h2>Step 1: mesh the paper (pen cartridge removed)</h2>
@@ -1015,7 +1053,8 @@ function renderPens(cols){
     row.appendChild(sw);row.appendChild(t);row.appendChild(s);box.appendChild(row);
   });
 }
-function update(){
+function update(){update0();try{renderReady()}catch(e){}}
+function update0(){
   saveSettings();if(typeof simStop==="function"&&sim)simStop();
   const o=readOpts();
   if(IDS.some(i=>!isFinite(o[i]))){setMsg("err","Fill in every number field.");return}
@@ -1885,7 +1924,7 @@ $("bMesh").addEventListener("click",async()=>{
   if(!$("kOut").checked){pmsg("err","Tick that the pen cartridge is removed first.");return}
   const cmd=$("meshCmd").textContent;if(!/^PLOT_MESH/.test(cmd)){pmsg("err","Load a drawing first so there are mesh bounds.");return}
   pmsg("note","Running "+cmd+" ... this takes a few minutes. Keep this window open.");
-  try{await api("/api/gcode",{script:cmd});pmsg("ok","PLOT_MESH finished. Now fit the pen cartridge.")}
+  try{await api("/api/gcode",{script:cmd});pmsg("ok","PLOT_MESH finished. Now fit the pen cartridge.");meshDone=true;renderReady()}
   catch(e){pmsg("err","PLOT_MESH failed: "+e.message)}
 });
 $("bCancel").addEventListener("click",async()=>{try{await api("/api/cancel");pmsg("ok","Cancel sent.")}catch(e){pmsg("err",e.message)}});
@@ -2345,6 +2384,68 @@ function findPlate(){plateGuesses=buildGuesses();plateGuessIdx=0;return plateGue
 
 $("svgText").value=SAMPLE;loadText(SAMPLE,"sample drawing",true);histBtn();
 setMsg("note","Sample drawing loaded (100 mm test pattern). Load your own SVG to replace it.");
+
+/* ---------- guided layout: numbered, collapsible sections and a ready-to-plot checklist ---------- */
+let meshDone=false;
+(function(){
+  const col=document.querySelector("#convert .grid>div:first-child");if(!col)return;
+  const byTitle={};col.querySelectorAll(":scope>.panel").forEach(p=>{const h=p.querySelector("h2");if(h)byTitle[h.firstChild.textContent.trim()]=p});
+  const plan=[["Drawing","Load your drawing",1,0,1],["Placement","Size and place it on the sheet",2,0,1],["Arrange and project","Arrange, flip and save",0,0,0],
+    ["Bed photo","Photo of the bed",0,1,0],["Colour in filled areas","Fill and shading",0,1,0],["Pen width and line weight","Pen width and line weight",0,1,0],
+    ["Pens (colours)","Several pens (colours)",0,1,0],["Pen height and speed","Machine settings (set once)",0,0,0]];
+  let saved={};try{saved=JSON.parse(localStorage.getItem("q2ux")||"{}")}catch(e){}
+  const bar=document.createElement("div");bar.className="foldbar";
+  bar.innerHTML='<span>Sections:</span><button type="button" id="foldAll">Expand all</button><button type="button" id="foldNone">Collapse all</button>';
+  col.insertBefore(bar,col.firstChild);
+  const panels=[];let anchor=bar;
+  plan.forEach(pl=>{
+    const p=byTitle[pl[0]];if(!p)return;
+    const h=p.querySelector("h2");
+    h.firstChild.textContent=pl[1];
+    if(pl[2]){const n=document.createElement("span");n.className="stepn";n.textContent=pl[2];h.insertBefore(n,h.firstChild)}
+    if(pl[3]){const o=document.createElement("span");o.className="optl";o.textContent="optional";h.insertBefore(o,h.querySelector(".tip")||null)}
+    const body=document.createElement("div");body.className="pbody";
+    while(h.nextSibling)body.appendChild(h.nextSibling);p.appendChild(body);
+    const ch=document.createElement("span");ch.className="chev";h.appendChild(ch);
+    p.classList.add("fold");p.dataset.key=pl[0];
+    const open=saved[pl[0]]!==undefined?saved[pl[0]]:!!pl[4];
+    const set=(o,keep)=>{p.classList.toggle("shut",!o);body.hidden=!o;if(!keep){saved[pl[0]]=o;try{localStorage.setItem("q2ux",JSON.stringify(saved))}catch(e){}}};
+    set(open,true);p._set=set;
+    h.addEventListener("click",e=>{if(e.target.closest(".tip"))return;set(body.hidden)});
+    col.insertBefore(p,anchor.nextSibling);anchor=p;panels.push(p);
+  });
+  $("foldAll").addEventListener("click",()=>panels.forEach(p=>p._set(true)));
+  $("foldNone").addEventListener("click",()=>panels.forEach(p=>p._set(false)));
+  window.__goTo=id=>{const el=$(id);if(!el)return;const p=el.closest(".panel.fold");if(p&&p._set)p._set(true);setTimeout(()=>{el.scrollIntoView({block:"nearest",behavior:"smooth"});if(el.focus)el.focus()},60)};
+  /* drop zone */
+  const dz=$("dz"),fi=$("file");
+  dz.addEventListener("click",()=>fi.click());
+  dz.addEventListener("keydown",e=>{if(e.key==="Enter"||e.key===" "){e.preventDefault();fi.click()}});
+  ["dragenter","dragover"].forEach(t=>dz.addEventListener(t,e=>{e.preventDefault();dz.classList.add("over")}));
+  ["dragleave","drop"].forEach(t=>dz.addEventListener(t,e=>{e.preventDefault();dz.classList.remove("over")}));
+  dz.addEventListener("drop",e=>{const fs=Array.from(e.dataTransfer.files||[]).filter(f=>/\.svg$/i.test(f.name)||f.type==="image/svg+xml");if(!fs.length)return;
+    const dt=new DataTransfer();fs.forEach(f=>dt.items.add(f));fi.files=dt.files;fi.dispatchEvent(new Event("change",{bubbles:true}))});
+})();
+function renderReady(){
+  const ul=$("readyList");if(!ul)return;
+  const o=readOpts(),has=items.length>0,fits=has&&curOut.length>0,zOk=o.zDraw>0,photo=!!measFwd;
+  const rows=[
+    [has?"ok":"",has?"Drawing loaded":"Load a drawing",has?"":"Drop an SVG into step 1",has?"":"file"],
+    [!has?"":fits?"ok":"bad",fits?"Fits inside the pen's reach":(has?"Doesn't fit yet":"Fits inside the pen's reach"),has&&!fits?"Move or shrink it":"","w"],
+    [zOk?"ok":"bad",zOk?"Pen height (z_draw) entered":"Pen height (z_draw) is still 0",zOk?"":"Find it with PEN_TOUCH, then enter it","zDraw"],
+    [photo?"ok":"","Bed photo aligned",photo?"":"Optional. Helps place the drawing exactly","bAuto"],
+    [meshDone?"ok":"","Paper meshed (pen cartridge removed)",meshDone?"":"Step 1, once per sheet","meshCmd"]
+  ];
+  ul.innerHTML="";
+  rows.forEach(r=>{const li=document.createElement("li");li.className=r[0];
+    li.innerHTML='<span class="ic">'+(r[0]==="ok"?"&#10003;":r[0]==="bad"?"!":"")+'</span><span>'+r[1]+(r[2]?' <span class="why">&middot; '+r[2]+'</span>':"")+'</span>';
+    if(r[3]&&r[3]!=="w"&&r[0]!=="ok"){const b=document.createElement("button");b.type="button";b.className="go";b.textContent="Go";b.addEventListener("click",()=>window.__goTo(r[3]));li.appendChild(b)}
+    ul.appendChild(li)});
+  const need=has&&fits&&zOk;
+  $("readySum").textContent=need?"Ready: mesh the paper, fit the pen, then send the G-code.":"Finish the items marked ! or empty above.";
+  $("readySum").style.color=need?"var(--ok)":"var(--muted)";
+}
+renderReady();
 })();
 </script>
 
