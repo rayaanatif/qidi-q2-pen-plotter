@@ -393,6 +393,7 @@ nav{align-items:stretch}
         <button class="btn primary" id="copy">Copy G-code</button>
         <button class="btn" id="calib">Make calibration cross</button>
         <button class="btn" id="bRegDraw">Make photo alignment marks</button>
+        <button class="btn" id="bRegPrint" title="Same marks as a printable page, true size">Printable alignment sheet</button>
         <label style="flex-direction:row;align-items:center;gap:6px;font-size:12px;color:var(--muted)">Mark inset (mm)<input type="number" id="regIns" value="7" step="1" min="6" style="width:64px"></label>
         <button class="btn" id="redo" hidden>Back to my drawing</button>
         <span class="small" id="copied" aria-live="polite"></span>
@@ -2547,6 +2548,29 @@ function regAuto(silent){
 }
 $("bRegFind").addEventListener("click",()=>{if(phReady)regAuto(false)});
 window.__q2={layout:()=>lastRegLayout,fwd:()=>measFwd,reset:()=>{measFwd=measInv=null;window.__reg=null}}; /* test hook */
+
+/* printable version of the alignment marks (true size SVG for the sheet size set under Sheet and paper) */
+function regPrintSvg(o){
+  const L=regLayout(o),W=PAPER_W,H=PAPER_H,f=v=>v.toFixed(2);let b="";
+  L.forEach(c=>{const x=c[0]-o.paperX,y=o.paperY-c[1];
+    b+='<circle cx="'+f(x)+'" cy="'+f(y)+'" r="4"/><path d="M'+f(x-6.5)+' '+f(y)+'H'+f(x+6.5)+'M'+f(x)+' '+f(y-6.5)+'V'+f(y+6.5)+'"/>'});
+  const t=(x,y,sz,txt,anchor)=>'<text x="'+f(x)+'" y="'+f(y)+'" font-size="'+sz+'" text-anchor="'+(anchor||"middle")+'" fill="#555" stroke="none" font-family="Arial,Helvetica,sans-serif">'+txt+'</text>';
+  const my=H*0.44,info=t(W/2,my-9,4.2,"Q2 pen plotter alignment sheet")+
+    t(W/2,my-2,3.4,"Print at 100% (actual size, no fit to page).")+
+    t(W/2,my+4,3.4,"Printer REAR at the top; rear-left corner at X "+o.paperX+", Y "+o.paperY+". Tape it flat.")+
+    t(W/2,my+10,3.4,"Then take the bed photo: the app aligns itself from the six rings.")+
+    t(W/2,my+16,3.4,"Sheet "+W+" x "+H+" mm, rings "+o.regIns+" mm in from the edges.");
+  return '<svg xmlns="http://www.w3.org/2000/svg" width="'+W+'mm" height="'+H+'mm" viewBox="0 0 '+W+' '+H+'"><rect width="'+W+'" height="'+H+'" fill="#fff" stroke="none"/>'+
+    '<g fill="none" stroke="#000" stroke-width="0.5" stroke-linecap="round">'+b+'</g>'+t(W/2,16,4,"REAR (back of the printer)")+info+'</svg>';
+}
+$("bRegPrint").addEventListener("click",()=>{
+  let o=readOpts();if(IDS.some(i=>!isFinite(o[i]))){setMsg("err","Fill in every number field.");return}
+  if(o.regIns<14){$("regIns").value=14;o=readOpts()} /* printers cannot print right to the paper edge */
+  lastRegLayout=regLayout(o);try{localStorage.setItem("q2plotter.regLayout",JSON.stringify(lastRegLayout))}catch(e){}
+  const a=document.createElement("a");a.href=URL.createObjectURL(new Blob([regPrintSvg(o)],{type:"image/svg+xml"}));a.download="alignment_sheet_"+PAPER_W+"x"+PAPER_H+".svg";document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove()},500);
+  setMsg("ok","Alignment sheet downloaded: print it at 100% on "+PAPER_W+" × "+PAPER_H+" mm paper, put it where the Sheet and paper settings say, then take the photo.");
+});
+window.__q2.printSvg=()=>{$("regIns").value=Math.max(14,parseFloat($("regIns").value)||14);return regPrintSvg(readOpts())};
 
 
 /* ---------- auto-fit: find the plate in the photo, then the sheet on the plate ---------- */
