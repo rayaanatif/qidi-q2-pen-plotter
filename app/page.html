@@ -2021,6 +2021,18 @@ function hull(pts){pts=pts.slice().sort((a,b)=>a[0]-b[0]||a[1]-b[1]);const cr=(o
 function blobHull(px,W,sc){ /* hull of the blob's boundary-ish pixels (every pixel is fine: subsample by row extremes) */
   const rows=new Map();px.forEach(p=>{const x=p%W,y=(p/W)|0,r=rows.get(y);if(!r)rows.set(y,[x,x]);else{if(x<r[0])r[0]=x;if(x>r[1])r[1]=x}});
   const pts=[];rows.forEach((r,y)=>{pts.push([r[0],y]);pts.push([r[1]+1,y+1])});return hull(pts)}
+function denseCrop(m,W,H){ /* keep only the rows/columns where the texture is dense (drops stray speckle along the edges of the picture) */
+  const cs=new Float32Array(W),rs=new Float32Array(H);
+  for(let y=0;y<H;y++)for(let x=0;x<W;x++)if(m[y*W+x]){cs[x]++;rs[y]++}
+  const run=(a,n)=>{const mx=Math.max.apply(null,a),t=.2*mx;let bs=0,be=-1,s0=-1;for(let i=0;i<=n;i++){const on=i<n&&a[i]>=t;if(on&&s0<0)s0=i;if(!on&&s0>=0){if(i-s0>be-bs+1){bs=s0;be=i-1}s0=-1}}return [bs,be]};
+  const xr=run(cs,W),yr=run(rs,H),o=new Uint8Array(W*H);
+  for(let y=yr[0];y<=yr[1];y++)for(let x=xr[0];x<=xr[1];x++)o[y*W+x]=m[y*W+x];
+  return o}
+function open5(m,W,H){ /* 5x5 opening (erode then dilate) drops thin lines and specks */
+  const e=new Uint8Array(W*H),o=new Uint8Array(W*H);
+  for(let y=2;y<H-2;y++)for(let x=2;x<W-2;x++){let all=1;for(let j=-2;j<=2&&all;j++)for(let i=-2;i<=2;i++)if(!m[(y+j)*W+x+i]){all=0;break}e[y*W+x]=all}
+  for(let y=2;y<H-2;y++)for(let x=2;x<W-2;x++)if(e[y*W+x])for(let j=-2;j<=2;j++)for(let i=-2;i<=2;i++)o[(y+j)*W+x+i]=1;
+  return o}
 function findPlate(){ /* returns 4 photo points [RL,RR,FR,FL] (full-res px) or null */
   const sc=Math.min(1,420/Math.max(phCv.width,phCv.height)),W=Math.round(phCv.width*sc),H=Math.round(phCv.height*sc);
   const t=document.createElement("canvas");t.width=W;t.height=H;const c=t.getContext("2d");c.drawImage(phCv,0,0,W,H);const d=c.getImageData(0,0,W,H).data;
@@ -2028,14 +2040,21 @@ function findPlate(){ /* returns 4 photo points [RL,RR,FR,FL] (full-res px) or n
   const th=otsu(g,W*H);let best=null;
   const lowP=[],highP=[];for(let i=0;i<W*H;i++)(g[i]<=th?lowP:highP).push(g[i]);
   const ths=[th];if(lowP.length>500)ths.push(otsu(Uint8Array.from(lowP),lowP.length));if(highP.length>500)ths.push(otsu(Uint8Array.from(highP),highP.length));
-  for(const cand of ths.flatMap(t=>[[true,t],[false,t]])){
+  /* local texture: the plate is speckled, the sheet and the dark interior are smooth */
+  const sd=new Float32Array(W*H);
+  for(let y=2;y<H-2;y++)for(let x=2;x<W-2;x++){let su=0,sq=0;for(let j=-2;j<=2;j++)for(let i=-2;i<=2;i++){const v=g[(y+j)*W+x+i];su+=v;sq+=v*v}const mu=su/25;sd[y*W+x]=Math.sqrt(Math.max(0,sq/25-mu*mu))}
+  const cands=ths.flatMap(t=>[[true,t,0,true],[false,t,0,true]]);
+  [5,6,8,10,13].forEach(T=>{cands.push([false,T,1,true]);cands.push([false,T,1,false])});
+  for(const cand of cands){
     const dark=cand[0],tt=cand[1];
-    const m=new Uint8Array(W*H);for(let i=0;i<W*H;i++)m[i]=(dark?g[i]<=tt:g[i]>tt)?1:0;
-    const b=bigBlob(m,W,H,0.01,true);if(!b)continue;const hl=hull(blobHull(b,W,sc).map(p=>p.slice()));
+    let m=new Uint8Array(W*H);
+    if(cand[2]){for(let i=0;i<W*H;i++)m[i]=sd[i]>tt?1:0;m=open5(m,W,H);m=denseCrop(m,W,H)}
+    else for(let i=0;i<W*H;i++)m[i]=(dark?g[i]<=tt:g[i]>tt)?1:0;
+    const b=bigBlob(m,W,H,0.01,cand[3]);if(!b)continue;const hl=hull(blobHull(b,W,sc).map(p=>p.slice()));
     let ha=0;for(let i=0;i<hl.length;i++){const p=hl[i],q=hl[(i+1)%hl.length];ha+=p[0]*q[1]-q[0]*p[1]}ha=Math.abs(ha)/2;
     let mx=0,my=0;b.forEach(p=>{mx+=p%W;my+=(p/W|0)});mx/=b.length;my/=b.length;
     const touch=hl.filter(p=>p[0]<=1||p[1]<=1||p[0]>=W-1||p[1]>=H-1).length;
-    const score=ha*(1-Math.hypot(mx/W-.5,my/H-.5))*(touch>2?0.25:1)*(ha/(W*H)<0.85?1:0.3)*(dark?1.15:1);
+    const score=ha*(1-Math.hypot(mx/W-.5,my/H-.5))*(touch>2?0.25:1)*(ha/(W*H)<0.7?1:0.1)*(dark?1.15:1)*(cand[2]&&touch===0?1.6:1);
     if(!best||score>best.score)best={score:score,hl:hl};
   }
   if(!best)return null;const hl=best.hl;
@@ -2050,14 +2069,24 @@ function findPlate(){ /* returns 4 photo points [RL,RR,FR,FL] (full-res px) or n
 function findSheet(h){ /* h maps bed mm -> photo px. Looks at the plate area (plus a strip in front) in top-down view, 1 px = 1 mm */
   const P=plateRect(),M=30,X0=Math.floor(P.x-M),X1=Math.ceil(P.x+P.s+M),Y1=Math.ceil(P.y+M),Y0=Math.floor(P.y-P.s-M),W=X1-X0,H=Y1-Y0;
   const src=phCv.getContext("2d").getImageData(0,0,phCv.width,phCv.height).data,PW=phCv.width,PH=phCv.height;
-  const g=new Uint8Array(W*H),ok=new Uint8Array(W*H);
+  const g=new Uint8Array(W*H),ok=new Uint8Array(W*H),tx=new Float32Array(W*H);
+  /* local texture of the photo (5x5 std at photo resolution): the plate is speckled, the sheet is smooth */
+  const pg=new Uint8Array(PW*PH);for(let i=0;i<PW*PH;i++)pg[i]=(0.2126*src[i*4]+0.7152*src[i*4+1]+0.0722*src[i*4+2])|0;
+  const ps=new Float32Array(PW*PH);
+  for(let y=2;y<PH-2;y++)for(let x=2;x<PW-2;x++){let su=0,sq=0;for(let j=-2;j<=2;j++){const r=(y+j)*PW+x;for(let i=-2;i<=2;i++){const v=pg[r+i];su+=v;sq+=v*v}}const mu=su/25;ps[y*PW+x]=Math.sqrt(Math.max(0,sq/25-mu*mu))}
   for(let j=0;j<H;j++)for(let i=0;i<W;i++){const bx=X0+i+.5,by=Y1-j-.5,w=h[6]*bx+h[7]*by+1,u=(h[0]*bx+h[1]*by+h[2])/w,v=(h[3]*bx+h[4]*by+h[5])/w;
-    if(u>=1&&v>=1&&u<PW-2&&v<PH-2){const k=((v|0)*PW+(u|0))*4;g[j*W+i]=(0.2126*src[k]+0.7152*src[k+1]+0.0722*src[k+2])|0;ok[j*W+i]=1}}
+    if(u>=3&&v>=3&&u<PW-4&&v<PH-4){const k=(v|0)*PW+(u|0);g[j*W+i]=pg[k];tx[j*W+i]=ps[k];ok[j*W+i]=1}}
+  /* average the texture over ~9 mm so speckle and pen lines even out */
+  const tb=new Float32Array(W*H);for(let j=4;j<H-4;j++)for(let i=4;i<W-4;i++){let t=0;for(let b=-4;b<=4;b++)for(let a=-4;a<=4;a++)t+=tx[(j+b)*W+i+a];tb[j*W+i]=t/81}
   /* threshold only on the plate itself (not the strip), so the table does not decide it */
   const inPlate=[];for(let j=0;j<H;j++)for(let i=0;i<W;i++)if(ok[j*W+i]&&Y1-j-.5>=P.y-P.s&&Y1-j-.5<=P.y&&X0+i+.5>=P.x&&X0+i+.5<=P.x+P.s)inPlate.push(g[j*W+i]);
   if(inPlate.length<2000)return {err:"The photo doesn't cover enough of the plate."};
   const tmp=Uint8Array.from(inPlate),th=otsu(tmp,tmp.length),light=$("sheetTone").value==="light";
-  const m=new Uint8Array(W*H);for(let i=0;i<W*H;i++)m[i]=ok[i]&&(light?g[i]>th:g[i]<=th)?1:0;
+  const plateT=[];for(let j=0;j<H;j++)for(let i=0;i<W;i++)if(ok[j*W+i]&&Y1-j-.5>=P.y-P.s&&Y1-j-.5<=P.y&&X0+i+.5>=P.x&&X0+i+.5<=P.x+P.s)plateT.push(Math.min(255,tb[j*W+i]*8)|0);
+  const tth=otsu(Uint8Array.from(plateT),plateT.length)/8;
+  /* texture only helps when the plate really is speckled: there must be a clear gap between the two texture groups */
+  const lowT=plateT.filter(v=>v/8<=tth),hiT=plateT.filter(v=>v/8>tth),mlo=lowT.reduce((a,b)=>a+b,0)/Math.max(1,lowT.length)/8,mhi=hiT.reduce((a,b)=>a+b,0)/Math.max(1,hiT.length)/8,useTex=mhi>2.0*Math.max(mlo,0.5)&&lowT.length>0.03*plateT.length;
+  const m=new Uint8Array(W*H);for(let i=0;i<W*H;i++)m[i]=ok[i]&&(light?g[i]>th:g[i]<=th)&&(!useTex||tb[i]<=tth)?1:0;
   /* tidy: a 3x3 majority pass to drop speckle */
   const m2=new Uint8Array(W*H);for(let j=1;j<H-1;j++)for(let i=1;i<W-1;i++){let s=0;for(let a=-1;a<=1;a++)for(let b=-1;b<=1;b++)s+=m[(j+a)*W+i+b];m2[j*W+i]=s>=5?1:0}
   const blob=bigBlob(m2,W,H,0.03);if(!blob)return {err:"Couldn't find a sheet that stands out from the plate."};
