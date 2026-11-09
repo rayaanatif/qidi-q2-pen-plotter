@@ -28,7 +28,7 @@ Bounds in `PLOT_MESH` are **nozzle** positions. The pen is 26.45 mm in front of 
 | `use_mesh` | 1 | 1 follows the `plot` mesh, 0 draws at flat Z |
 | `mesh_profile` | `"plot"` | Profile name `PLOT_MESH` creates |
 | `do_tilt` | 1 | Run `Z_TILT_ADJUST` before meshing |
-| `park_x`, `park_y`, `park_z` | 232, 125, 13.8 | Idle park position. Clears the camera view and makes it easy to reach the bed. It never lowers: if the toolhead is already higher it stays there. |
+| `park_x`, `park_y`, `park_z` | 85, 287.5, 13.8 | Idle park position = Qidi's default purge/trash position (rear chute). Out of the camera view and off the bed. It never lowers: if the toolhead is already higher it stays there. |
 | `plotting` | 0 | Set to 1 by `PLOT_START`, back to 0 by `PLOT_END` |
 
 To change the park position, edit `park_x`, `park_y` and `park_z`. You can find a good spot by moving the toolhead there and running `GET_POSITION`.

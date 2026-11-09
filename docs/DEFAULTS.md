@@ -27,7 +27,7 @@ These are the starting values in the app and `plotter.cfg`. They come from tests
 
 ## Idle park position
 
-X 232, Y 125, Z 13.8. Clears the camera's view and the area for moving paper in and out.
+X 85, Y 287.5, Z 13.8. This is Qidi's default purge/trash position (the rear chute used by MOVE_TO_TRASH), out of the camera's view and clear of the bed.
 
 ## Paper and mesh
 
