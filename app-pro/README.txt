@@ -11,7 +11,8 @@ You need Python 3.8 or newer (nothing else to install).
 
 What is new in Pro
   Workspace layout (like Bambu Studio / OrcaSlicer)
-    Top tabs: Prepare, Preview, Device, Settings (then Image to SVG, Editor, Cutter). The top bar shows whether the printer is online.
+    Editing happens right on the Prepare canvas: the tool strip on its left adds SVG files, Image to SVG, text, rectangle, ellipse, line, star, polygon, spiral, the calibration cross and the alignment marks. Every shape is a normal object on the bed: drag it, use the corner squares to resize and the round handle to rotate it, type exact W/H/X/Y/rotation in the bar above the canvas, and change its own settings (text, letter size, corner radius, points, tone fill) in the Shape settings panel on the right. Delete removes the selected object.
+    Top tabs: Prepare, Preview, Device, Settings (then Image to SVG, Cutter). The top bar shows whether the printer is online.
     Prepare: Drawing, arrange and bed photo on the left (drop SVG files on the box); the bed in the middle (drag to move, corner squares to resize); the selected drawing's size and position, a "Settings at a glance" summary and the "Ready to plot?" checklist on the right (each open item has a Go link).
     Preview: simulation of the pen path with a scrub bar, and the G-code with Copy, Download .gcode, the calibration cross and the photo alignment marks.
     Device: printer status (Refresh, or check every 15 s), connection and upload / start / cancel / emergency stop, the PLOT_MESH command and button, and a G-code console with Home all, Motors off and Firmware restart. Needs the local helper (q2_plotter.py) running and the page opened from its address.

@@ -156,6 +156,18 @@ nav{align-items:stretch}
 @media(max-width:1099px){.ws,.ws2,.devgrid,.settw{display:flex;flex-direction:column;gap:10px}}
 #convert .grid,#convert>.grid{display:none}
 .col>.panel+.panel{margin-top:10px}
+#prepHost{display:flex;gap:8px;align-items:flex-start}
+#prepHost #cvWrap{flex:1;min-width:0}
+#tbar{display:flex;flex-direction:column;gap:1px;width:62px;flex:none;background:#262629;border:1px solid #3a3a40;border-radius:4px;padding:5px 3px}
+#tbar button{background:none;border:0;color:#c8c8cf;font:11px var(--font-body);padding:7px 2px;border-radius:3px;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:3px}
+#tbar button:hover{background:#34343b;color:#fff}
+#tbar svg{width:22px;height:22px;stroke:currentColor;fill:none;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
+#tbar hr{border:0;border-top:1px solid #3a3a40;margin:4px 2px;width:80%}
+#objBar{display:flex;flex-wrap:wrap;gap:6px 12px;align-items:center;margin-bottom:8px;font-size:12px;color:var(--muted)}
+#objBar label{display:flex;flex-direction:row;align-items:center;gap:5px}
+#objBar input{width:62px}
+#objBar .sp{flex:1}
+@media(max-width:1099px){#prepHost{flex-direction:column}#tbar{flex-direction:row;flex-wrap:wrap;width:auto}#tbar button{width:58px}}
 #settNav{display:flex;flex-direction:column;gap:2px;align-content:flex-start;background:#262629;border:1px solid #3a3a40;border-radius:3px;padding:6px;height:max-content}
 #settNav button{background:none;border:0;text-align:left;color:#c8c8cf;padding:9px 12px;border-radius:3px;font:13px var(--font-body);cursor:pointer;display:flex;flex-direction:column;gap:1px}
 #settNav button small{color:var(--muted);font-size:11px}
@@ -192,7 +204,6 @@ nav{align-items:stretch}
   <button role="tab" id="t-dev" aria-selected="false" data-tab="dev">Device</button>
   <button role="tab" id="t-sett" aria-selected="false" data-tab="sett">Settings</button>
   <button role="tab" id="t-img" aria-selected="false" data-tab="img">Image to SVG</button>
-  <button role="tab" id="t-edit" aria-selected="false" data-tab="edit">Editor</button>
   <button role="tab" id="t-cut" aria-selected="false" data-tab="cut">Cutter (soon)</button>
   <span id="navPrn" role="button" tabindex="0" title="Open the Device tab"><i id="navDot"></i><span id="navTxt">Printer: not checked</span></span>
 </nav>
@@ -532,35 +543,6 @@ nav{align-items:stretch}
 </div>
 </section>
 
-<section id="edit" hidden>
-<div class="grid">
-  <div>
-    <div class="panel">
-      <h2>Add to the sheet</h2>
-      <div class="row"><button class="btn" data-add="text">+ Text</button><button class="btn" data-add="rect">+ Rectangle</button><button class="btn" data-add="ellipse">+ Ellipse</button><button class="btn" data-add="line">+ Line</button><button class="btn" data-add="poly">+ Polygon / star</button><button class="btn" data-add="spiral">+ Spiral</button></div>
-      <div id="edList" style="margin-top:10px"></div>
-      <div class="row" style="margin-top:8px"><button class="btn" id="edDup" disabled>Duplicate</button><button class="btn" id="edDel" disabled>Delete</button><button class="btn" id="edClear">Clear all</button></div>
-    </div>
-    <div class="panel">
-      <h2>Selected object</h2>
-      <div id="edProps"><p class="hint" style="margin:0">Add an object above, or click one on the sheet.</p></div>
-    </div>
-    <div class="panel">
-      <h2>Use it</h2>
-      <div class="row"><button class="btn primary" id="edSend" disabled>Send to the plotter</button></div>
-      <p class="hint">Everything on the sheet becomes one drawing on the Convert tab, where you can still move, scale, rotate and fill it. Sending again replaces the previous editor drawing. Text uses a single-stroke font, so the pen draws each letter once, with no doubled outline.</p>
-    </div>
-  </div>
-  <div>
-    <div class="panel">
-      <h2>Sheet</h2>
-      <canvas id="edCv" width="600" height="800" style="touch-action:none"></canvas>
-      <p class="hint">Drag an object to move it, a corner square to resize it and the round handle to rotate it (hold Shift to snap to 15&deg;). Units are millimetres on the sheet. The sheet size follows your paper setting on the Convert tab.</p>
-    </div>
-  </div>
-</div>
-</section>
-
 <section id="cut" hidden>
 <div class="grid">
   <div>
@@ -603,7 +585,7 @@ nav{align-items:stretch}
         <li>A cutting mat or sacrificial sheet that is not the print plate.</li>
         <li>A test cut (square with one sharp and one rounded corner) to confirm trail compensation.</li>
       </ol>
-      <p class="hint">Until then the tab only stores your values for this session. The shapes you place on the Convert or Editor tab will become cut paths unchanged, so nothing you draw now needs redoing.</p>
+      <p class="hint">Until then the tab only stores your values for this session. The shapes you place on the Prepare tab will become cut paths unchanged, so nothing you draw now needs redoing.</p>
     </div>
     <div class="panel">
       <h2>Planned cut preview</h2>
@@ -1202,7 +1184,7 @@ function placeNew(it){
 }
 function fmt(v){return String(+v.toFixed(2))}
 function syncFields(){
-  fsInfo();const it=items[sel];if(!it)return;
+  fsInfo();if(window.__bar)window.__bar();const it=items[sel];if(!it)return;
   $("fitW").value=fmt(it.W*it.s);$("fitH").value=fmt(it.H*it.s);$("orgX").value=fmt(it.x);$("orgY").value=fmt(it.y);$("rotDeg").value=fmt(it.rot||0);
 }
 function renderList(){
@@ -1217,6 +1199,7 @@ function renderList(){
     box.appendChild(d);
   });
   ["bDup","bDel","bRotL","bRotR","bMirH","bMirV","alL","alC","alR","alT","alM","alB"].forEach(i=>$(i).disabled=sel<0);
+  try{edPanelSync()}catch(e){console.error(e)}
 }
 function loadText(t,name,paste){
   if(t.trim().charAt(0)==="{"&&t.indexOf("q2plotter")>0){try{loadProject(t)}catch(e){setMsg("err",e.message)}return}
@@ -1228,7 +1211,6 @@ function loadText(t,name,paste){
       setMsg("err",(name?name+": ":"")+why);return}
     if(paste){const k=items.findIndex(x=>x.paste);if(k>=0){items.splice(k,1)}}
     if(name!=="sample drawing"){for(let k=items.length-1;k>=0;k--)if(items[k].name==="sample drawing")items.splice(k,1)}
-    if(name==="editor drawing"){for(let k=items.length-1;k>=0;k--)if(items[k].name===name)items.splice(k,1)}
     const it=makeItem(r,name||"drawing",paste);it.src=t;placeNew(it);items.push(it);sel=items.length-1;calibMode=regMode=false;
     renderList();syncFields();update();histPush();if(r.hasText)setMsg("note","This SVG contains text, which is skipped. Convert it to paths to plot it.")}
   catch(e){update();setMsg("err",(name?name+": ":"")+e.message)}
@@ -1240,6 +1222,7 @@ IDS.forEach(i=>{if(["fitW","fitH","orgX","orgY"].indexOf(i)<0)$(i).addEventListe
     if(id==="fitW"&&v>0&&it.W>1e-6){it.s=v/it.W;$("fitH").value=fmt(it.H*it.s)}
     else if(id==="fitH"&&v>0&&it.H>1e-6){it.s=v/it.H;$("fitW").value=fmt(it.W*it.s)}
     else if(id==="orgX")it.x=v;else if(id==="orgY")it.y=v;
+    if(it.ed&&(id==="fitW"||id==="fitH"))edBake(it);
     renderList();
   }
   update();
@@ -1252,7 +1235,7 @@ $("rotDeg").addEventListener("input",()=>{const it=items[sel],v=parseFloat($("ro
 function rotBy(a){const it=items[sel];if(!it)return;it.rot=((((it.rot||0)+a+180)%360)+360)%360-180;syncFields();update();histPush()}
 $("bRotL").addEventListener("click",()=>rotBy(90));$("bRotR").addEventListener("click",()=>rotBy(-90));
 $("bDel").addEventListener("click",()=>{if(sel<0)return;items.splice(sel,1);sel=Math.min(sel,items.length-1);renderList();syncFields();update();histPush()});
-$("bDup").addEventListener("click",()=>{if(sel<0)return;const c=Object.assign({},items[sel]);c.paste=false;c.name=c.name+" (copy)";c.x+=10;c.y-=10;items.push(c);sel=items.length-1;renderList();syncFields();update();histPush()});
+$("bDup").addEventListener("click",()=>{if(sel<0)return;const c=Object.assign({},items[sel]);c.paste=false;c.name=c.name+" (copy)";c.x+=10;c.y-=10;if(c.ed)c.ed=JSON.parse(JSON.stringify(c.ed));items.push(c);sel=items.length-1;renderList();syncFields();update();histPush()});
 /* ---------- move the explanatory hints behind an info mark on their heading ---------- */
 (function(){
   const sec=$("convert");if(!sec)return;
@@ -1736,12 +1719,11 @@ const FONT={
 "~":[6,"0.3 3.5 1.4 4.6 2.6 3.6 3.8 4.6 4.9 3.5"],"^":[5.5,"0.5 5 2.5 8 4.5 5"],"|":[3,"2 8.5 2 -1"],"`":[3,"1.5 8 2.5 6.5"]
 };
 /* ---------- shape and text editor ---------- */
-let eo=[],esel=-1,eid=0;
 const ED_DEF={
   text:{text:"Hello",size:12,ls:1,lh:1.5,smooth:true},rect:{w:60,h:40,r:0},ellipse:{w:50,h:50},line:{w:60,h:30},
   poly:{w:50,h:50,n:5,ratio:0.4},spiral:{w:50,h:50,turns:4}
 };
-const ED_CLOSED={rect:1,ellipse:1,poly:1};
+const ED_CLOSED={rect:1,ellipse:1,poly:1,star:1};
 function edGlyphs(p){
   const k=p.size/8,lines=String(p.text).split("\n"),strokes=[];let y0=0;
   lines.forEach((line,li)=>{
@@ -1789,158 +1771,84 @@ function edGen(o){
   o.polys=polys.map(q=>q.map(v=>[(v[0]-a)*sx,-((v[1]-b)*sy)]));
   o.W=W;o.H=H;o.s=1;o.mnx=0;o.mny=0;
 }
-function edAdd(type){
-  const o={type:type,p:Object.assign({},ED_DEF[type]),x:0,y:0,rot:0,fx:1,fy:1,fill:false,tone:60,id:++eid,name:{text:"Text",rect:"Rectangle",ellipse:"Ellipse",line:"Line",poly:"Polygon",spiral:"Spiral"}[type]};
-  edGen(o);
-  o.x=(PAPER_W-o.W)/2+eo.length*6;o.y=(PAPER_H-o.H)/2-eo.length*6;
-  eo.push(o);esel=eo.length-1;edUI();edDraw();
+/* editor objects live on the bed as ordinary items (it.ed = {type,p,fill,tone}); the toolbar on the Prepare canvas creates them */
+const ED_NAME={text:"Text",rect:"Rectangle",ellipse:"Ellipse",line:"Line",poly:"Polygon",spiral:"Spiral",star:"Star"};
+function edBuild(ed){
+  const o={type:ed.type==="star"?"poly":ed.type,p:ed.p};edGen(o);
+  const dd=o.polys.map(p=>"M"+p.map(q=>(Math.round(q[0]*100)/100)+" "+(Math.round(q[1]*100)/100)).join("L")+(ED_CLOSED[o.type]?"Z":"")).join("");
+  const g=Math.round(255*(1-ed.tone/100)),W=o.W.toFixed(2),H=o.H.toFixed(2);
+  const svg='<svg xmlns="http://www.w3.org/2000/svg" width="'+W+'mm" height="'+H+'mm" viewBox="0 '+(-o.H).toFixed(2)+' '+W+' '+H+'"><path d="'+dd+'" fill="'+(ed.fill&&ED_CLOSED[o.type]?"rgb("+g+","+g+","+g+")":"none")+'" fill-rule="evenodd" stroke="#000000" stroke-width="0.4" stroke-linejoin="round" stroke-linecap="round"/></svg>';
+  const r=svgToPolys(svg);
+  /* the SVG reader returns screen pixels for sized SVGs: rescale to true millimetres using the size we generated */
+  let mx=-1e9,mn=1e9,my=-1e9,mm=1e9;r.polys.forEach(q=>q.forEach(p=>{mx=Math.max(mx,p[0]);mn=Math.min(mn,p[0]);my=Math.max(my,p[1]);mm=Math.min(mm,p[1])}));
+  const gw=mx-mn,gh=my-mm,k=Math.max(o.W,o.H)/Math.max(gw,gh,1e-6);
+  if(isFinite(k)&&k>0){r.polys.forEach(q=>q.forEach(p=>{p[0]*=k;p[1]*=k}));r.pwid=r.pwid.map(v=>v*k)}
+  return {r:r,svg:svg};
 }
-function edUI(){
-  const box=$("edList");box.innerHTML="";
-  eo.forEach((o,i)=>{
-    const d=document.createElement("div");
-    d.style.cssText="padding:5px 10px;margin:3px 0;border:1px solid "+(i===esel?"var(--accent)":"var(--line)")+";border-radius:3px;cursor:pointer;font-size:13px;display:flex;justify-content:space-between;gap:8px";
-    const a=document.createElement("span");a.textContent=(i+1)+". "+o.name+(o.type==="text"?": "+String(o.p.text).split("\n")[0].slice(0,16):"");a.style.cssText="overflow:hidden;text-overflow:ellipsis;white-space:nowrap";
-    const b=document.createElement("span");b.textContent=fmt(o.W)+" × "+fmt(o.H);b.style.color="var(--muted)";
-    d.appendChild(a);d.appendChild(b);d.addEventListener("click",()=>{esel=i;edUI();edDraw()});box.appendChild(d);
-  });
-  $("edDup").disabled=$("edDel").disabled=esel<0;$("edSend").disabled=!eo.length;
-  edProps();
+function edRefresh(it){
+  const cx=it.x+it.W*it.s/2,cy=it.y+it.H*it.s/2,b=edBuild(it.ed),n=makeItem(b.r,it.name,false);
+  ["polys","fills","pfid","pcol","pwid","mnx","mny","W","H","npts"].forEach(k=>it[k]=n[k]);
+  it.s=1;it.x=cx-it.W/2;it.y=cy-it.H/2;it.src=b.svg;
 }
-function edProps(){
-  const box=$("edProps"),o=eo[esel];box.innerHTML="";
-  if(!o){const p=document.createElement("p");p.className="hint";p.style.margin="0";p.textContent="Add an object above, or click one on the sheet.";box.appendChild(p);return}
+function edBake(it){/* after a handle resize the scale lives in it.s: fold it back into the shape's own size */
+  if(!it.ed||Math.abs(it.s-1)<1e-6)return;const s=it.s,p=it.ed.p;
+  if(it.ed.type==="text")p.size=Math.max(1,p.size*s);else{if(p.w!=null)p.w*=s;if(p.h!=null)p.h*=s;if(p.r!=null)p.r*=s}
+  edRefresh(it);
+}
+function edMake(type){
+  const base=type==="star"?"poly":type,ed={type:type,p:Object.assign({},ED_DEF[base]),fill:false,tone:60};
+  if(type==="star"){ed.p.n=5;ed.p.ratio=0.4}else if(type==="poly"){ed.p.n=6;ed.p.ratio=0}
+  let b;try{b=edBuild(ed)}catch(e){setMsg("err",e.message);return}
+  for(let k=items.length-1;k>=0;k--)if(items[k].name==="sample drawing")items.splice(k,1);
+  const it=makeItem(b.r,ED_NAME[type],false);it.ed=ed;it.src=b.svg;
+  const o=readOpts(),u=usable(o),n=items.length,cx=(u.x0+u.x1)/2,cy=(Math.max(u.ylo,0)+u.yhi)/2;
+  it.s=1;it.x=cx-it.W/2+8*n;it.y=cy-it.H/2-8*n;
+  items.push(it);sel=items.length-1;calibMode=regMode=false;
+  renderList();syncFields();update();histPush();
+  if(type==="text"){const t=document.querySelector("#edProps textarea");if(t){t.focus();t.select()}}
+}
+let edShown=null;
+function edPanelSync(){
+  const it=items[sel],ed=it&&it.ed||null;if(ed===edShown&&$("edPanel"))return;edShown=ed;
+  const pan=$("edPanel");if(!pan)return;pan.hidden=!ed;const box=$("edProps");box.innerHTML="";if(!ed)return;
+  $("edPanelTitle").textContent=ED_NAME[ed.type]+" settings";
   const f=document.createElement("div");f.className="fields";box.appendChild(f);
   const field=(label,get,set,attrs,tag)=>{
-    const l=document.createElement("label");l.appendChild(document.createTextNode(label));
-    let i;
-    if(tag==="textarea"){i=document.createElement("textarea");i.style.cssText="width:140px;min-height:54px;resize:vertical";i.value=get()}
+    const l=document.createElement("label");l.appendChild(document.createTextNode(label));let i;
+    if(tag==="textarea"){i=document.createElement("textarea");i.style.cssText="width:150px;min-height:54px;resize:vertical";i.value=get()}
     else if(tag==="check"){i=document.createElement("input");i.type="checkbox";i.checked=!!get();l.style.cssText="flex-direction:row;justify-content:space-between"}
     else{i=document.createElement("input");i.type="number";i.value=fmt(get());Object.keys(attrs||{}).forEach(k=>i.setAttribute(k,attrs[k]))}
     i.addEventListener("input",()=>{
+      const cur=items[sel];if(!cur||cur.ed!==ed)return;edBake(cur);
       if(tag==="check")set(i.checked);else if(tag==="textarea")set(i.value);else{const v=parseFloat(i.value);if(!isFinite(v))return;set(v)}
-      edGen(o);edDraw();edUI2();
+      try{edRefresh(cur)}catch(e){return}
+      syncFields();renderList();update();
     });
+    i.addEventListener("change",histPush);
     l.appendChild(i);f.appendChild(l);return i;
   };
-  const P=o.p;
-  if(o.type==="text"){
+  const P=ed.p,T=ed.type;
+  if(T==="text"){
     field("Text",()=>P.text,v=>P.text=v,0,"textarea");
     field("Letter height (mm)",()=>P.size,v=>P.size=Math.max(1,v),{step:1,min:1});
     field("Letter spacing (1 = normal)",()=>P.ls,v=>P.ls=Math.max(0.3,v),{step:0.1,min:0.3});
     field("Line spacing (1.5 = normal)",()=>P.lh,v=>P.lh=Math.max(0.8,v),{step:0.1,min:0.8});
     field("Round the curves",()=>P.smooth,v=>P.smooth=v,0,"check");
-  }else if(o.type==="rect"){
-    field("Width (mm)",()=>P.w,v=>P.w=Math.max(1,v),{step:1,min:1});field("Height (mm)",()=>P.h,v=>P.h=Math.max(1,v),{step:1,min:1});field("Corner radius (mm)",()=>P.r,v=>P.r=Math.max(0,v),{step:1,min:0});
-  }else if(o.type==="poly"){
-    field("Width (mm)",()=>P.w,v=>P.w=Math.max(1,v),{step:1,min:1});field("Height (mm)",()=>P.h,v=>P.h=Math.max(1,v),{step:1,min:1});
+  }else if(T==="rect"){
+    field("Corner radius (mm)",()=>P.r,v=>P.r=Math.max(0,v),{step:1,min:0});
+  }else if(T==="poly"||T==="star"){
     field("Sides / points",()=>P.n,v=>P.n=Math.max(3,Math.min(24,Math.round(v))),{step:1,min:3,max:24});
     field("Star depth (0 = plain polygon)",()=>P.ratio>0.04&&P.ratio<0.98?P.ratio:0,v=>P.ratio=Math.max(0,Math.min(0.95,v)),{step:0.05,min:0,max:0.95});
-  }else if(o.type==="spiral"){
-    field("Width (mm)",()=>P.w,v=>P.w=Math.max(1,v),{step:1,min:1});field("Height (mm)",()=>P.h,v=>P.h=Math.max(1,v),{step:1,min:1});field("Turns",()=>P.turns,v=>P.turns=Math.max(0.5,v),{step:0.5,min:0.5});
-  }else{
-    field("Width (mm)",()=>P.w,v=>P.w=v,{step:1});field("Height (mm)",()=>P.h,v=>P.h=v,{step:1});
+  }else if(T==="spiral"){
+    field("Turns",()=>P.turns,v=>P.turns=Math.max(0.5,v),{step:0.5,min:0.5});
   }
-  const xi=field("Position X (mm)",()=>o.x,v=>o.x=v,{step:1}),yi=field("Position Y (mm)",()=>o.y,v=>o.y=v,{step:1});
-  field("Rotation (°)",()=>o.rot,v=>o.rot=v,{step:5});
-  if(ED_CLOSED[o.type]){
-    field("Fill with tone",()=>o.fill,v=>o.fill=v,0,"check");
-    field("Darkness (0-100 %)",()=>o.tone,v=>o.tone=Math.max(0,Math.min(100,v)),{step:5,min:0,max:100});
+  if(ED_CLOSED[T==="star"?"poly":T]){
+    field("Fill with tone",()=>ed.fill,v=>ed.fill=v,0,"check");
+    field("Darkness (0-100 %)",()=>ed.tone,v=>ed.tone=Math.max(0,Math.min(100,v)),{step:5,min:0,max:100});
+    const p=document.createElement("p");p.className="hint";p.style.cssText="margin:8px 0 0;grid-column:1/-1";p.textContent="A tone fill is hatched by the pen when Fill mode is set to Tone fill (or Fill dark areas) in Settings.";box.appendChild(p);
   }
-  const row=document.createElement("div");row.className="row";row.style.marginTop="8px";
-  const mk=(t,fn)=>{const b=document.createElement("button");b.className="btn";b.textContent=t;b.addEventListener("click",fn);row.appendChild(b)};
-  mk("Flip left-right",()=>{o.fx=-o.fx;edDraw()});mk("Flip up-down",()=>{o.fy=-o.fy;edDraw()});mk("Centre on sheet",()=>{o.x=(PAPER_W-o.W)/2;o.y=(PAPER_H-o.H)/2;edUI();edDraw()});
-  box.appendChild(row);
-  if(o.fill&&ED_CLOSED[o.type]){const p=document.createElement("p");p.className="hint";p.textContent="The tone is sent as a grey fill. On the Convert tab choose the Tone fill mode (or Fill dark areas) so the pen hatches it.";box.appendChild(p)}
+  if(T==="line"||T==="rect"||T==="ellipse"||T==="spiral"||T==="poly"||T==="star"){/* size, position and rotation are in the bar above the canvas and the Selected drawing panel */}
 }
-function edUI2(){/* refresh list sizes without rebuilding the property form */
-  const rows=$("edList").children;eo.forEach((o,i)=>{if(rows[i]){rows[i].lastChild.textContent=fmt(o.W)+" × "+fmt(o.H);if(o.type==="text")rows[i].firstChild.textContent=(i+1)+". "+o.name+": "+String(o.p.text).split("\n")[0].slice(0,16)}});
-}
-const ED={view:null};
-function edView(){const cv=$("edCv"),d=window.devicePixelRatio||1,w=Math.max(200,Math.round(cv.clientWidth*d)),h=Math.round(w*(PAPER_H+20)/(PAPER_W+20));if(cv.width!==w||cv.height!==h){cv.width=w;cv.height=h}return {k:cv.width/(PAPER_W+20),H:cv.height,d:d}}
-function edDraw(){
-  const cv=$("edCv"),c=cv.getContext("2d"),v=edView(),k=v.k,d=v.d,X=x=>(x+10)*k,Y=y=>v.H-(y+10)*k;
-  c.clearRect(0,0,cv.width,cv.height);c.fillStyle=css("--bed");c.fillRect(0,0,cv.width,cv.height);
-  c.fillStyle=css("--plate");c.fillRect(X(0),Y(PAPER_H),PAPER_W*k,PAPER_H*k);
-  c.strokeStyle=css("--grid");c.lineWidth=d;
-  for(let g=0;g<=PAPER_W;g+=10){c.beginPath();c.moveTo(X(g),Y(0));c.lineTo(X(g),Y(PAPER_H));c.stroke()}
-  for(let g=0;g<=PAPER_H;g+=10){c.beginPath();c.moveTo(X(0),Y(g));c.lineTo(X(PAPER_W),Y(g));c.stroke()}
-  c.strokeStyle=css("--muted");c.lineWidth=1.5*d;c.strokeRect(X(0),Y(PAPER_H),PAPER_W*k,PAPER_H*k);
-  c.lineJoin="round";c.lineCap="round";
-  eo.forEach((o,i)=>{
-    const tr=itemTr(o);
-    if(o.fill&&ED_CLOSED[o.type]){const g=Math.round(255*(1-o.tone/100));c.fillStyle="rgba("+g+","+g+","+g+",.85)";if(g<90)c.fillStyle="rgba(255,255,255,.12)";
-      c.beginPath();o.polys.forEach(p=>{tr(p).forEach((q,j)=>j?c.lineTo(X(q[0]),Y(q[1])):c.moveTo(X(q[0]),Y(q[1])));c.closePath()});c.fill("evenodd")}
-    c.strokeStyle=css("--stroke");c.lineWidth=1.4*d;
-    o.polys.forEach(p=>{const q=tr(p);c.beginPath();q.forEach((t,j)=>j?c.lineTo(X(t[0]),Y(t[1])):c.moveTo(X(t[0]),Y(t[1])));c.stroke()});
-    const cs=itemCorners(o);c.lineWidth=d;c.setLineDash(i===esel?[]:[4*d,4*d]);c.strokeStyle=i===esel?css("--accent"):css("--muted");
-    c.beginPath();cs.forEach((q,j)=>j?c.lineTo(X(q[0]),Y(q[1])):c.moveTo(X(q[0]),Y(q[1])));c.closePath();c.stroke();c.setLineDash([]);
-  });
-  const o=eo[esel];
-  if(o){const cs=itemCorners(o),t=itemXf(o),m=itemPt(o,t.w/2,t.h),rh=rotHandle(o,k/d),h=4*d;
-    c.fillStyle=css("--accent");c.strokeStyle=css("--accent");c.lineWidth=d;
-    c.beginPath();c.moveTo(X(m[0]),Y(m[1]));c.lineTo(X(rh[0]),Y(rh[1]));c.stroke();c.beginPath();c.arc(X(rh[0]),Y(rh[1]),5*d,0,6.2832);c.fill();
-    c.strokeStyle=css("--plate");cs.forEach(q=>{c.fillRect(X(q[0])-h,Y(q[1])-h,2*h,2*h);c.strokeRect(X(q[0])-h,Y(q[1])-h,2*h,2*h)})}
-}
-(function(){
-  const cv=$("edCv");let drag=null;
-  const pos=ev=>{const r=cv.getBoundingClientRect(),v=edView(),px=(ev.clientX-r.left)*cv.width/r.width,py=(ev.clientY-r.top)*cv.height/r.height;return {x:px/v.k-10,y:(v.H-py)/v.k-10,k:v.k/v.d}};
-  const tolOf=p=>11/p.k;
-  function hit(p){
-    const tol=tolOf(p);
-    if(esel>=0&&eo[esel]){const o=eo[esel],rh=rotHandle(o,p.k);if(Math.hypot(rh[0]-p.x,rh[1]-p.y)<=tol)return {mode:"rotate",i:esel};
-      const cs=itemCorners(o);for(let i=0;i<4;i++)if(Math.hypot(cs[i][0]-p.x,cs[i][1]-p.y)<=tol)return {mode:"resize",ci:i,i:esel}}
-    const pad=Math.max(1.5,tol/2);
-    for(let i=eo.length-1;i>=0;i--){const o=eo[i],t=itemXf(o),l=itemLocal(o,p.x,p.y);if(l[0]>=-pad&&l[0]<=t.w+pad&&l[1]>=-pad&&l[1]<=t.h+pad)return {mode:"move",i:i}}
-    return null;
-  }
-  cv.addEventListener("pointerdown",ev=>{
-    const p=pos(ev),h=hit(p);if(!h){esel=-1;edUI();edDraw();return}
-    esel=h.i;const o=eo[esel];
-    if(h.mode==="move")drag={mode:"move",dx:p.x-o.x,dy:p.y-o.y};
-    else if(h.mode==="rotate")drag={mode:"rotate"};
-    else{const A=itemCorners(o)[(h.ci+2)%4];drag={mode:"resize",ci:h.ci,ax:A[0],ay:A[1],w0:o.W,h0:o.H,size0:o.p.size}}
-    try{cv.setPointerCapture(ev.pointerId)}catch(e){}
-    edUI();edDraw();ev.preventDefault();
-  });
-  cv.addEventListener("pointermove",ev=>{
-    const p=pos(ev);
-    if(!drag){const h=hit(p);cv.style.cursor=!h?"default":h.mode==="move"?"move":h.mode==="rotate"?"crosshair":(h.ci%2===0?"nesw-resize":"nwse-resize");return}
-    const o=eo[esel];if(!o)return;const t=itemXf(o);
-    if(drag.mode==="move"){o.x=p.x-drag.dx;o.y=p.y-drag.dy}
-    else if(drag.mode==="rotate"){let a=Math.atan2(p.y-t.cy,p.x-t.cx)*180/Math.PI-90;if(ev.shiftKey)a=Math.round(a/15)*15;a=((a+180)%360+360)%360-180;o.rot=+a.toFixed(1)}
-    else{
-      const ddx=p.x-drag.ax,ddy=p.y-drag.ay,ex=Math.abs(ddx*t.c+ddy*t.sn),ey=Math.abs(-ddx*t.sn+ddy*t.c);
-      if(o.type==="text"){const f=Math.max(ex/drag.w0,ey/drag.h0);o.p.size=Math.max(1,drag.size0*f)}
-      else{o.p.w=Math.max(1,ex);o.p.h=Math.max(1,ey)}
-      edGen(o);
-      const left=drag.ci===0||drag.ci===3,bottom=drag.ci<2,dx=(left?o.W:0)-o.W/2,dy=(bottom?o.H:0)-o.H/2;
-      o.x=drag.ax-(dx*t.c-dy*t.sn)-o.W/2;o.y=drag.ay-(dx*t.sn+dy*t.c)-o.H/2;
-    }
-    edDraw();
-  });
-  const end=()=>{if(drag){drag=null;edUI()}};
-  cv.addEventListener("pointerup",end);cv.addEventListener("pointercancel",end);
-  if(window.ResizeObserver)new ResizeObserver(edDraw).observe(cv);
-})();
-document.querySelectorAll("[data-add]").forEach(b=>b.addEventListener("click",()=>edAdd(b.dataset.add)));
-$("edDel").addEventListener("click",()=>{if(esel<0)return;eo.splice(esel,1);esel=Math.min(esel,eo.length-1);edUI();edDraw()});
-$("edDup").addEventListener("click",()=>{if(esel<0)return;const o=eo[esel],c=JSON.parse(JSON.stringify({type:o.type,p:o.p,x:o.x,y:o.y,rot:o.rot,fx:o.fx,fy:o.fy,fill:o.fill,tone:o.tone,name:o.name}));c.id=++eid;c.x+=6;c.y-=6;edGen(c);eo.push(c);esel=eo.length-1;edUI();edDraw()});
-$("edClear").addEventListener("click",()=>{eo=[];esel=-1;edUI();edDraw()});
-function edSvg(){
-  const parts=[];let a=1e9,b=1e9,c=-1e9,d=-1e9;
-  eo.forEach(o=>{
-    const tr=itemTr(o),ps=o.polys.map(p=>tr(p));
-    ps.forEach(p=>p.forEach(q=>{a=Math.min(a,q[0]);b=Math.min(b,q[1]);c=Math.max(c,q[0]);d=Math.max(d,q[1])}));
-    const dd=ps.map(p=>"M"+p.map(q=>(Math.round(q[0]*100)/100)+" "+(-Math.round(q[1]*100)/100)).join("L")+(ED_CLOSED[o.type]?"Z":"")).join("");
-    const g=Math.round(255*(1-o.tone/100));
-    parts.push('<path d="'+dd+'" fill="'+(o.fill&&ED_CLOSED[o.type]?"rgb("+g+","+g+","+g+")":"none")+'" fill-rule="evenodd" stroke="#000000" stroke-width="0.4" stroke-linejoin="round" stroke-linecap="round"/>');
-  });
-  const m=1,W=c-a+2*m,H=d-b+2*m;
-  return '<svg xmlns="http://www.w3.org/2000/svg" width="'+W.toFixed(2)+'mm" height="'+H.toFixed(2)+'mm" viewBox="'+(a-m).toFixed(2)+" "+(-d-m).toFixed(2)+" "+W.toFixed(2)+" "+H.toFixed(2)+'">'+parts.join("")+'</svg>';
-}
-$("edSend").addEventListener("click",()=>{if(!eo.length)return;document.getElementById("t-convert").click();loadText(edSvg(),"editor drawing")});
-document.getElementById("t-edit").addEventListener("click",()=>setTimeout(()=>{edDraw()},0));
 /* ---------- cutter scaffold ---------- */
 document.querySelectorAll("[data-tool]").forEach(b=>b.addEventListener("click",()=>{
   document.querySelectorAll("[data-tool]").forEach(x=>x.classList.toggle("primary",x===b));
@@ -2033,6 +1941,7 @@ function histGo(d){
 $("bUndo").addEventListener("click",()=>histGo(-1));$("bRedo").addEventListener("click",()=>histGo(1));
 document.addEventListener("keydown",e=>{
   const t=e.target&&e.target.tagName;if(t==="INPUT"||t==="TEXTAREA"||t==="SELECT")return;
+  if((e.key==="Delete"||e.key==="Backspace")&&sel>=0&&!$("convert").hidden){e.preventDefault();$("bDel").click();return}
   if(!(e.ctrlKey||e.metaKey))return;const k=e.key.toLowerCase();
   if(k==="z"){e.preventDefault();histGo(e.shiftKey?1:-1)}else if(k==="y"){e.preventDefault();histGo(1)}
 });
@@ -2165,7 +2074,7 @@ document.addEventListener("keydown",e=>{if(e.key==="Escape"&&$("cvWrap").classLi
   });
   function end(){if(!drag)return;
     if(drag.mode==="pan"){const m=drag.moved;drag=null;cv.style.cursor="grab";if(!m){sel=-1;renderList();update()}return}
-    drag=null;renderList();update();histPush()}
+    drag=null;{const it=items[sel];if(it&&it.ed)edBake(it)}renderList();syncFields();update();histPush()}
   cv.addEventListener("pointerup",end);cv.addEventListener("pointercancel",end);
 })();
 let tmr;$("svgText").addEventListener("input",()=>{clearTimeout(tmr);tmr=setTimeout(()=>{const t=$("svgText").value.trim();if(t)loadText(t,"pasted SVG",true)},400)});
@@ -2572,7 +2481,7 @@ function regAuto(silent){
 $("bRegFind").addEventListener("click",()=>{if(phReady)regAuto(false)});
 setTimeout(()=>{$("refHint").hidden=!refOn()},0);
 $("refSheet").addEventListener("change",()=>{$("refHint").hidden=!refOn();$("bRegFind").textContent=refOn()?"Align from reference sheet":"Auto-align from marks";if(phReady)regAuto(false)});
-window.__q2={sheet:()=>sheetLayout(),layout:()=>lastRegLayout,fwd:()=>measFwd,reset:()=>{measFwd=measInv=null;window.__reg=null}}; /* test hook */
+window.__q2={items:()=>items,edBake:edBake,sheet:()=>sheetLayout(),layout:()=>lastRegLayout,fwd:()=>measFwd,reset:()=>{measFwd=measInv=null;window.__reg=null}}; /* test hook */
 
 /* printable version of the alignment marks (true size SVG for the sheet size set under Sheet and paper) */
 function regPrintSvg(o){
@@ -2748,6 +2657,7 @@ window.__goTo=id=>{
   const pl=all["Placement"],kids=Array.from(pl.children).slice(1),subs=kids.filter(k=>k.classList&&k.classList.contains("sub"));
   const iP=kids.indexOf(subs[0]),iO=kids.indexOf(subs[1]);
   const objP=mk("Selected drawing"),paperP=mk("Sheet and paper"),offP=mk("Pen offset from the nozzle");
+  const edP=mk("Shape settings");edP.id="edPanel";edP.hidden=true;edP.querySelector("h2").id="edPanelTitle";const edB=document.createElement("div");edB.id="edProps";edP.appendChild(edB);
   kids.forEach((k,i)=>{if(k===subs[0]||k===subs[1])return;(i<iP?objP:i<iO?paperP:offP).appendChild(k)});
   const hn=document.createElement("p");hn.className="hint";hn.textContent="Calibrate these with the calibration cross (Preview tab, G-code panel): measure where its centre lands and correct the offsets.";offP.insertBefore(hn,offP.children[1]);
   /* summary panel */
@@ -2760,7 +2670,7 @@ window.__goTo=id=>{
   title(all["Drawing"],"Drawing");title(all["Arrange and project"],"Arrange, flip and save");title(all["Bed photo"],"Photo of the bed");
   L.append(all["Drawing"],all["Arrange and project"],all["Bed photo"]);
   C.append(prep);
-  R.append(objP,sum,all["Ready to plot?"]);
+  R.append(edP,objP,sum,all["Ready to plot?"]);
   const wsEl=document.createElement("div");wsEl.className="ws";wsEl.append(L,C,R);conv.appendChild(wsEl);
   [[all["Drawing"],true,1],[all["Arrange and project"],false,0],[all["Bed photo"],false,0]].forEach(x=>{
     const p=x[0],h=p.querySelector("h2"),body=document.createElement("div");body.className="pbody";
@@ -2796,6 +2706,44 @@ window.__goTo=id=>{
   });
   let c0="sheet";try{c0=localStorage.getItem("q2cat")||"sheet"}catch(e){}
   selCat(pages.some(p=>p[0]===c0)?c0:"sheet");
+})();
+/* ---------- Prepare canvas: tool palette (left) and object bar (top), like a slicer ---------- */
+(function(){
+  const host=$("prepHost");if(!host)return;
+  const ic={svg:'<path d="M6 3h8l5 5v13H6z"/><path d="M14 3v5h5"/><path d="M9 14h6M9 17h4"/>',img:'<rect x="3" y="5" width="18" height="14" rx="1"/><path d="M3 16l5-5 4 4 3-3 6 5"/><circle cx="16.5" cy="9.5" r="1"/>',
+    text:'<path d="M5 6V4h14v2M12 4v16M9 20h6"/>',rect:'<rect x="4" y="6" width="16" height="12"/>',ellipse:'<ellipse cx="12" cy="12" rx="9" ry="6.5"/>',line:'<path d="M5 19L19 5"/>',
+    star:'<path d="M12 3l2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1L3.2 9.5l6.1-.9z"/>',poly:'<path d="M12 3l8 5v8l-8 5-8-5V8z"/>',spiral:'<path d="M12 12a1.5 1.5 0 0 1 3 0a3.5 3.5 0 0 1-7 0a5.5 5.5 0 0 1 11 0a7.5 7.5 0 0 1-15 0"/>',
+    cal:'<circle cx="12" cy="12" r="4"/><path d="M12 3v6M12 15v6M3 12h6M15 12h6"/>',reg:'<circle cx="12" cy="12" r="3"/><path d="M12 2v5M12 17v5M2 12h5M17 12h5"/><rect x="3" y="3" width="18" height="18" rx="1" stroke-dasharray="2 3"/>'};
+  const tb=document.createElement("div");tb.id="tbar";tb.setAttribute("role","toolbar");tb.setAttribute("aria-label","Add to the bed");
+  const add=(k,label,tip,fn)=>{const b=document.createElement("button");b.type="button";b.title=tip;b.innerHTML='<svg viewBox="0 0 24 24">'+ic[k]+'</svg><span>'+label+'</span>';b.addEventListener("click",fn);tb.appendChild(b);return b};
+  const hr=()=>tb.appendChild(document.createElement("hr"));
+  add("svg","SVG","Open an SVG file",()=>$("file").click());
+  add("img","Image","Turn a picture into plotter lines (Image to SVG)",()=>showTab("img"));
+  hr();
+  add("text","Text","Add text (single-stroke font)",()=>edMake("text"));
+  add("rect","Rect","Add a rectangle",()=>edMake("rect"));
+  add("ellipse","Ellipse","Add an ellipse or circle",()=>edMake("ellipse"));
+  add("line","Line","Add a straight line",()=>edMake("line"));
+  add("star","Star","Add a star",()=>edMake("star"));
+  add("poly","Polygon","Add a polygon",()=>edMake("poly"));
+  add("spiral","Spiral","Add a spiral",()=>edMake("spiral"));
+  hr();
+  add("cal","Cross","Draw the calibration cross to measure the pen offset",()=>$("calib").click());
+  add("reg","Marks","Draw the photo alignment marks with the pen",()=>$("bRegDraw").click());
+  host.insertBefore(tb,host.firstChild);
+  const bar=document.createElement("div");bar.id="objBar";
+  const fld=[["W","fitW"],["H","fitH"],["X","orgX"],["Y","orgY"],["Rot °","rotDeg"]],ins={};
+  fld.forEach(p=>{const l=document.createElement("label");l.appendChild(document.createTextNode(p[0]));const i=document.createElement("input");i.type="number";i.step=p[1]==="rotDeg"?5:1;i.setAttribute("aria-label",p[0]);
+    i.addEventListener("input",()=>{const t=$(p[1]);t.value=i.value;t.dispatchEvent(new Event("input",{bubbles:true}))});i.addEventListener("change",()=>{$(p[1]).dispatchEvent(new Event("change",{bubbles:true}))});
+    l.appendChild(i);bar.appendChild(l);ins[p[1]]=i});
+  const sp=document.createElement("span");sp.className="sp";bar.appendChild(sp);
+  const bt=(t,id)=>{const b=document.createElement("button");b.type="button";b.className="btn";b.textContent=t;b.addEventListener("click",()=>$(id).click());bar.appendChild(b);return b};
+  const ex=[bt("Flip ↔","bMirH"),bt("Flip ↕","bMirV"),bt("Duplicate","bDup"),bt("Delete","bDel"),bt("Undo","bUndo"),bt("Redo","bRedo")];
+  host.parentNode.insertBefore(bar,host);
+  window.__bar=()=>{const has=sel>=0&&items[sel];
+    fld.forEach(p=>{const i=ins[p[1]];i.disabled=!has;if(document.activeElement!==i)i.value=has?$(p[1]).value:""});
+    ["bMirH","bMirV","bDup","bDel"].forEach((id,k)=>ex[k].disabled=!has);ex[4].disabled=$("bUndo").disabled;ex[5].disabled=$("bRedo").disabled};
+  window.__bar();
 })();
 /* tabs: put the canvas where it is being used */
 document.querySelectorAll("nav button").forEach(b=>b.addEventListener("click",()=>{if(b.dataset.tab==="convert"||b.dataset.tab==="prev")hostCanvas();if(b.dataset.tab==="dev")devRefresh(true)}));
