@@ -201,7 +201,7 @@ nav{align-items:stretch}
   <button role="tab" id="t-dev" aria-selected="false" data-tab="dev">Device</button>
   <button role="tab" id="t-sett" aria-selected="false" data-tab="sett">Settings</button>
   <button role="tab" id="t-img" aria-selected="false" data-tab="img">Image to SVG</button>
-  <button role="tab" id="t-cut" aria-selected="false" data-tab="cut">Cutter (soon)</button>
+  <button role="tab" id="t-cut" aria-selected="false" data-tab="cut">Cutter</button>
   <span id="navPrn" role="button" tabindex="0" title="Open the Device tab"><i id="navDot"></i><span id="navTxt">Printer: not checked</span></span>
 </nav>
 <section id="prev" hidden>
@@ -285,6 +285,8 @@ nav{align-items:stretch}
         <label class="btn" style="cursor:pointer">Choose photo file<input type="file" id="photoFile" accept="image/*" style="display:none"></label>
       </div>
       <label style="flex-direction:row;align-items:center;gap:8px;margin:10px 0 0;color:var(--ink);font-size:13px"><input type="checkbox" id="refSheet"> Using alignment reference sheet</label>
+      <label style="flex-direction:row;align-items:center;gap:8px;margin:6px 0 0;color:var(--ink);font-size:13px"><input type="checkbox" id="matOn"> Using the green cutting mat (trimmed to the plate)</label>
+      <p class="hint" id="matHint" hidden style="margin:4px 0 0">Lay the cutting mat trimmed to the plate size on the plate, square to its edges, with its grid facing up. Take the photo from above with the rear of the printer at the top of the picture. The app finds the mat's four corners (the green area), then straightens the result using the 1 inch grid lines, so the paper or material on top does not matter as long as the mat's edges and some of its grid stay visible. The mat is taken to fill the plate rectangle set below.</p>
       <p class="hint" id="refHint" hidden style="margin:4px 0 0">Tape the printed 280 mm reference sheet flat on the plate with its corner on the plate's rear-left corner. The app finds its 12 printed rings in the photo and aligns from them, no pen marks needed. Plate size and position are in the fields below.</p>
       <div id="qrBox" hidden style="margin-top:10px">
         <canvas id="qrCv" width="200" height="200" style="width:200px;height:200px;max-width:100%;border:1px solid var(--line);border-radius:4px;background:#fff"></canvas>
@@ -544,49 +546,52 @@ nav{align-items:stretch}
 <div class="grid">
   <div>
     <div class="panel">
-      <h2>Tool on the carriage</h2>
-      <div class="row"><button class="btn primary" data-tool="pen">Pen</button><button class="btn" data-tool="cutter">Cutter</button><button class="btn" data-tool="deboss">Deboss stylus</button></div>
-      <p class="hint" id="toolNote">The pen is the only tool that generates G-code today. The cutter and deboss pages below are a preview of the settings they will need, and nothing here is sent to the printer yet.</p>
+      <h2>How cutting works here</h2>
+      <p class="hint" style="margin:0">Every object on the Prepare tab has a Tool setting next to its size: <b>Draw</b> (pen), <b>Cut</b> (swivel blade) or <b>Deboss</b> (stylus). Each tool becomes its own G-code file. Pick the file in the list above the G-code, fit that tool, and run it. Do not move the sheet between files. Cut and Deboss follow the outline of the object; fills are ignored.</p>
     </div>
     <div class="panel">
-      <h2>Cutter settings (preview only)</h2>
+      <h2>Cutter: swivel blade (Roland 45&deg; style)</h2>
       <div class="fields">
         <label>Blade offset from nozzle X (mm)<input type="number" id="cuOffX" value="0.4" step="0.05"></label>
         <label>Blade offset from nozzle Y (mm)<input type="number" id="cuOffY" value="-26.45" step="0.05"></label>
-        <label>Blade trail offset (mm)<input type="number" id="cuTrail" value="0.5" step="0.05"></label>
-        <label>Cut depth Z (mm)<input type="number" id="cuZ" value="0" step="0.05"></label>
-        <label>Passes<input type="number" id="cuPass" value="2" min="1" max="6"></label>
-        <label>Depth added per pass (mm)<input type="number" id="cuStep" value="0.1" step="0.05"></label>
-        <label>Lift blade above angle (&deg;)<input type="number" id="cuLift" value="35" step="5"></label>
-        <label>Overcut at closed shapes (mm)<input type="number" id="cuOver" value="0.5" step="0.1"></label>
-        <label>Cut speed (mm/s)<input type="number" id="cuSpd" value="20" step="1"></label>
+        <label>Blade trail offset (mm)<input type="number" id="cuTrail" value="0.25" step="0.05" min="0.05"></label>
+        <label>Cut Z, blade through the sheet (mm)<input type="number" id="cuZ" value="0" step="0.05"></label>
+        <label>Passes<input type="number" id="cuPass" value="2" min="1" max="8"></label>
+        <label>Deeper by this much each pass (mm)<input type="number" id="cuStep" value="0.1" step="0.05" min="0"></label>
+        <label>Lift blade at corners sharper than (&deg;)<input type="number" id="cuLift" value="60" step="5" min="10" max="170"></label>
+        <label>Corner lift height (mm)<input type="number" id="cuHop" value="1" step="0.5" min="0.2"></label>
+        <label>Overcut at closed shapes (mm)<input type="number" id="cuOver" value="0.5" step="0.1" min="0"></label>
+        <label>Cut speed (mm/s)<input type="number" id="cuSpd" value="20" step="1" min="1"></label>
+        <label>Cut acceleration (mm/s&sup2;)<input type="number" id="cuAcc" value="800" step="100" min="100"></label>
+        <label>Travel clearance above cut (mm)<input type="number" id="cuClr" value="2" step="0.5" min="0.5"></label>
       </div>
-      <p class="hint">A drag blade trails behind its pivot, so the path is pre-compensated: the blade is swivelled through each corner (or lifted if the corner is sharper than the angle above) and closed shapes get a small overcut so the cut overlaps.</p>
+      <p class="hint">The blade trails behind its pivot by the trail offset (0.25 mm for the Roland 45&deg; blade; check the pack). The head therefore leads the blade by that distance: gentle corners are swivelled round with the blade in the sheet, sharper ones (above the angle) lift a little, swivel and drop again. Closed shapes start in the middle of their longest straight edge with a short run-in and finish with the overcut so the cut overlaps. Shapes inside other shapes are cut first, and every pass is done for the whole job before the next, deeper pass, so cut-out pieces stay held until the last pass.</p>
+      <div class="row"><button class="btn" id="cuTest">Add a test cut (square and circle)</button></div>
     </div>
     <div class="panel">
-      <h2>Deboss / scoring (preview only)</h2>
+      <h2>Deboss / scoring stylus</h2>
       <div class="fields">
-        <label>Stylus depth Z (mm)<input type="number" id="deZ" value="0" step="0.05"></label>
+        <label>Stylus offset from nozzle X (mm)<input type="number" id="deOffX" value="0.4" step="0.05"></label>
+        <label>Stylus offset from nozzle Y (mm)<input type="number" id="deOffY" value="-26.45" step="0.05"></label>
+        <label>Stylus Z (mm)<input type="number" id="deZ" value="0" step="0.05"></label>
         <label>Passes<input type="number" id="dePass" value="1" min="1" max="4"></label>
-        <label>Speed (mm/s)<input type="number" id="deSpd" value="30" step="1"></label>
+        <label>Speed (mm/s)<input type="number" id="deSpd" value="30" step="1" min="1"></label>
+        <label>Travel clearance (mm)<input type="number" id="deClr" value="2" step="0.5" min="0.5"></label>
       </div>
+      <p class="hint">The stylus follows the outline exactly, with no blade compensation.</p>
     </div>
   </div>
   <div>
     <div class="panel">
-      <h2>Before the cutter can be switched on</h2>
+      <h2>Before the first cut</h2>
       <ol class="hint" style="margin:0;padding-left:18px;line-height:1.7">
-        <li>Spring-loaded cutter cartridge printed and fitted to the bay (blade tip must not reach the mat unless the Z move asks for it).</li>
-        <li>Blade X/Y offset measured the same way as the pen offset, with a test mark.</li>
-        <li>Cut depth found with a PEN_TOUCH style test on scrap card, entered above.</li>
-        <li>A cutting mat or sacrificial sheet that is not the print plate.</li>
-        <li>A test cut (square with one sharp and one rounded corner) to confirm trail compensation.</li>
+        <li>Fit the Roland blade in a spring-loaded cartridge that holds it vertical and lets it swivel. Home with the cartridge removed (as for the pen) and make the mesh with PLOT_MESH.</li>
+        <li>Measure the blade X/Y offset like the pen offset: draw the calibration cross with the blade lightly (a pen refill in the cartridge works), and enter the offsets above.</li>
+        <li>Find the cut Z on scrap card: lower Z in 0.05 mm steps until the blade just cuts through. Start with a high value and with 1 pass.</li>
+        <li>Use the cutting mat or a sacrificial sheet. A blade set too deep scores the mat and cuts the thin surface of the plate.</li>
+        <li>Press Add a test cut, run it and check that the corners close and the circle overlaps. Adjust the trail offset if corners round off or overshoot.</li>
       </ol>
-      <p class="hint">Until then the tab only stores your values for this session. The shapes you place on the Prepare tab will become cut paths unchanged, so nothing you draw now needs redoing.</p>
-    </div>
-    <div class="panel">
-      <h2>Planned cut preview</h2>
-      <p class="hint" style="margin:0">Cut lines will show on the Convert preview in a separate colour, with the blade swivel arcs at corners and the overcut marked. Order will be inside shapes first, then outlines, so loose pieces do not move.</p>
+      <p class="hint">Cutting reuses PLOT_START and PLOT_END from plotter.cfg (homed check, bed mesh, park), so no config change is needed. The cut G-code sets its own acceleration after PLOT_START, and PLOT_END restores the printer's.</p>
     </div>
   </div>
 </div>
@@ -836,7 +841,7 @@ document.querySelectorAll("[data-copy]").forEach(b=>b.addEventListener("click",(
 }));
 
 /* ---------- settings memory (optional) ---------- */
-const IDS=["fillMode","fillDark","fillT1","fillT2","fillT3","fillT4","fillS1","fillS2","fillS3","fillS4","fillGap","fillAngle","paperX","paperY","paperW","paperH","penCount","margin","fitW","fitH","orgX","orgY","offX","offY","penYMax","zDraw","zLift","zPress","tol","fDraw","fTravel","fZ","penW","penOv","lineOv","regIns"];
+const IDS=["fillMode","fillDark","fillT1","fillT2","fillT3","fillT4","fillS1","fillS2","fillS3","fillS4","fillGap","fillAngle","paperX","paperY","paperW","paperH","penCount","margin","fitW","fitH","orgX","orgY","offX","offY","penYMax","zDraw","zLift","zPress","tol","fDraw","fTravel","fZ","penW","penOv","lineOv","regIns","cuOffX","cuOffY","cuTrail","cuZ","cuPass","cuStep","cuLift","cuHop","cuOver","cuSpd","cuAcc","cuClr","deOffX","deOffY","deZ","dePass","deSpd","deClr"];
 const CBS=["lwUse","autoGap","lwPrev","refSheet"];
 try{const s=JSON.parse(localStorage.getItem("q2plot")||"{}");IDS.forEach(i=>{if(s[i]!==undefined)$(i).value=s[i]});CBS.forEach(i=>{if(s[i]!==undefined)$(i).checked=!!s[i]})}catch(e){}
 function saveSettings(){try{const s={};IDS.forEach(i=>s[i]=$(i).value);CBS.forEach(i=>s[i]=$(i).checked);localStorage.setItem("q2plot",JSON.stringify(s))}catch(e){}}
@@ -1103,6 +1108,107 @@ function regPolys(L){
   });
   return out;
 }
+
+/* ---------- cutter (swivel blade) and deboss stylus ---------- */
+const TOOL_NAME={draw:"Draw",cut:"Cut",deboss:"Deboss"};
+function pipoly(q,P){let c=false;for(let i=0,j=P.length-1;i<P.length;j=i++){const a=P[i],b=P[j];if((a[1]>q[1])!==(b[1]>q[1])&&q[0]<(b[0]-a[0])*(q[1]-a[1])/(b[1]-a[1])+a[0])c=!c}return c}
+function toolPaths(mode,o){
+  const out=[];
+  items.forEach(it=>{if((it.mode||"draw")!==mode)return;const tr=itemTr(it);
+    it.polys.forEach(p=>{
+      let q=simplify(tr(p),Math.max(o.tol,0.02)).filter((v,i,a)=>!i||Math.hypot(v[0]-a[i-1][0],v[1]-a[i-1][1])>1e-3);
+      if(q.length<2)return;
+      const cl=q.length>3&&Math.hypot(q[0][0]-q[q.length-1][0],q[0][1]-q[q.length-1][1])<0.02;
+      out.push({p:q,closed:cl});
+    });
+  });
+  return out;
+}
+/* closed shapes: start in the middle of the longest straight edge, run in before it and overcut after it */
+function cutPrep(path,r,over){
+  let P=path.p;
+  if(!path.closed)return {pts:P,closed:false,start:P[0]};
+  P=P.slice(0,-1);const n=P.length;if(n<3)return null;
+  let bi=0,bl=-1;for(let i=0;i<n;i++){const l=Math.hypot(P[(i+1)%n][0]-P[i][0],P[(i+1)%n][1]-P[i][1]);if(l>bl){bl=l;bi=i}}
+  const a=P[bi],b=P[(bi+1)%n],m=[(a[0]+b[0])/2,(a[1]+b[1])/2],d=[(b[0]-a[0])/bl,(b[1]-a[1])/bl],half=bl/2;
+  const lin=Math.min(3*r,half*0.9),ov=Math.min(over,half*0.9),R=[m];
+  for(let k=1;k<=n;k++)R.push(P[(bi+k)%n]);R.push(m.slice());
+  return {pts:[[m[0]-d[0]*lin,m[1]-d[1]*lin]].concat(R,[[m[0]+d[0]*ov,m[1]+d[1]*ov]]),closed:true,start:m};
+}
+/* head (pivot) path for a blade that trails the pivot by r: "c" = cutting move, "h" = lifted move */
+function cutOps(pts,r,liftDeg){
+  const ops=[],S=[],push=(k,x,y)=>ops.push({k:k,x:x,y:y});
+  for(let i=0;i<pts.length-1;i++){const dx=pts[i+1][0]-pts[i][0],dy=pts[i+1][1]-pts[i][1],l=Math.hypot(dx,dy);if(l>1e-4)S.push({a:pts[i],b:pts[i+1],d:[dx/l,dy/l]})}
+  S.forEach((s,j)=>{
+    if(j>0){
+      const e=S[j-1],a1=Math.atan2(e.d[1],e.d[0]),a2=Math.atan2(s.d[1],s.d[0]);let da=a2-a1;
+      while(da>Math.PI)da-=2*Math.PI;while(da<-Math.PI)da+=2*Math.PI;
+      const deg=Math.abs(da)*180/Math.PI,V=s.a;
+      if(deg>=3){const steps=Math.max(1,Math.ceil(deg/15)),k=deg>liftDeg?"h":"c";
+        for(let t=0;t<=steps;t++){const a=a1+da*t/steps;push(k,V[0]+r*Math.cos(a),V[1]+r*Math.sin(a))}
+        if(k==="h")push("c",V[0]+r*s.d[0],V[1]+r*s.d[1]);
+      }
+    }else push("c",s.a[0]+r*s.d[0],s.a[1]+r*s.d[1]);
+    push("c",s.b[0]+r*s.d[0],s.b[1]+r*s.d[1]);
+  });
+  return ops;
+}
+function orderTool(paths){
+  paths.forEach(x=>{x.depth=0});
+  const cl=paths.filter(x=>x.closed);
+  if(cl.length>1&&paths.length<=800)paths.forEach(x=>{const q=x.p[Math.floor(x.p.length/2)];cl.forEach(c=>{if(c!==x&&pipoly(q,c.p))x.depth++})});
+  const maxD=Math.max(0,...paths.map(x=>x.depth)),out=[];let cx=0,cy=0;
+  for(let dd=maxD;dd>=0;dd--){
+    const rem=paths.filter(x=>x.depth===dd);
+    while(rem.length){let bi=0,bd=Infinity,br=false;
+      rem.forEach((x,i)=>{const a=x.pre.start,d0=(a[0]-cx)**2+(a[1]-cy)**2;if(d0<bd){bd=d0;bi=i}});
+      const x=rem.splice(bi,1)[0];out.push(x);cx=x.pre.start[0];cy=x.pre.start[1]}
+  }
+  return out;
+}
+function makeToolOut(mode,paths,o){
+  const cut=mode==="cut",r=cut?Math.max(0.05,o.cuTrail):0;
+  paths.forEach(x=>{x.pre=cutPrep(x,r,cut?o.cuOver:0)});
+  const list=orderTool(paths.filter(x=>x.pre&&x.pre.pts.length>=2));
+  const strokes=list.map(x=>{
+    if(cut){const ops=cutOps(x.pre.pts,r,o.cuLift);if(ops.length<2)return null;const a=ops[0],b=ops[1],l=Math.hypot(b.x-a.x,b.y-a.y)||1;return {ops:ops,d0:[(b.x-a.x)/l,(b.y-a.y)/l],tip:x.pre.pts}}
+    const pts=x.pre.pts;return {ops:pts.map(q=>({k:"c",x:q[0],y:q[1]})),d0:[0,0],tip:pts};
+  }).filter(Boolean);
+  const cfg=cut?{z:o.cuZ,passes:Math.max(1,Math.round(o.cuPass)),step:Math.max(0,o.cuStep),spd:o.cuSpd,clr:o.cuClr,hop:o.cuHop,offX:o.cuOffX,offY:o.cuOffY,r:r,acc:o.cuAcc}
+    :{z:o.deZ,passes:Math.max(1,Math.round(o.dePass)),step:0,spd:o.deSpd,clr:o.deClr,hop:0,offX:o.deOffX,offY:o.deOffY,r:0,acc:0};
+  return {label:cut?"Cut (blade, trail "+r+" mm)":"Deboss (stylus)",pen:0,col:null,pass:0,tool:mode,cfg:cfg,strokes:strokes,polys:strokes.map(s=>s.tip)};
+}
+function toolGcode(out,o){
+  const c=out.cfg,L=[],f3=v=>v.toFixed(3),zT=c.z+c.clr;let len=0,moves=0;
+  const N=(x,y)=>[x-c.offX,y-c.offY];
+  L.push("; q2 "+(out.tool==="cut"?"cutter":"deboss stylus")+"  "+out.label+"  strokes="+out.strokes.length+"  passes="+c.passes+"  offset=("+c.offX.toFixed(2)+","+c.offY.toFixed(2)+")  z="+c.z.toFixed(2));
+  L.push("; FIT THE "+(out.tool==="cut"?"CUTTER (blade holder)":"DEBOSS STYLUS")+" BEFORE STARTING THIS FILE. Run it on the sheet where the drawing was placed; do not move the sheet.");
+  L.push("G21","G90","M83","PLOT_START ; macro in plotter.cfg: checks homed, loads the bed mesh, lifts Z");
+  if(c.acc)L.push("SET_VELOCITY_LIMIT ACCEL="+Math.round(c.acc)+" SQUARE_CORNER_VELOCITY=1 ; blade: slow accel keeps the swivel stable");
+  L.push("G1 Z"+f3(zT)+" F"+Math.round(o.fZ));
+  for(let p=0;p<c.passes;p++){
+    const zc=c.z-p*c.step,zh=zc+c.hop;
+    L.push("; pass "+(p+1)+" of "+c.passes+"  Z="+zc.toFixed(2));
+    out.strokes.forEach(s=>{
+      const o0=s.ops[0],ap=N(o0.x-s.d0[0]*3*c.r,o0.y-s.d0[1]*3*c.r),st=N(o0.x,o0.y);
+      L.push("G0 X"+f3(ap[0])+" Y"+f3(ap[1])+" F"+Math.round(o.fTravel));
+      if(c.r>0)L.push("G1 X"+f3(st[0])+" Y"+f3(st[1])+" F"+Math.round(o.fTravel));
+      L.push("G1 Z"+f3(zc)+" F"+Math.round(o.fZ));
+      let cur="c",px=o0.x,py=o0.y;
+      for(let i=1;i<s.ops.length;i++){
+        const q=s.ops[i];
+        if(q.k==="h"&&cur==="c"){L.push("G1 Z"+f3(zh)+" F"+Math.round(o.fZ));cur="h"}
+        else if(q.k==="c"&&cur==="h"){L.push("G1 Z"+f3(zc)+" F"+Math.round(o.fZ));cur="c"}
+        const d=Math.hypot(q.x-px,q.y-py);if(d<1e-4)continue;
+        const n=N(q.x,q.y);L.push("G1 X"+f3(n[0])+" Y"+f3(n[1])+" F"+Math.round(c.spd*60));
+        len+=d;moves++;px=q.x;py=q.y;
+      }
+      L.push("G1 Z"+f3(zT)+" F"+Math.round(o.fZ));
+    });
+  }
+  L.push("PLOT_END");
+  return {gcode:L.join("\n")+"\n",draw:len,moves:moves};
+}
 function build(items,o,isCal){
   let sizeTxt="";const P=[],H=[];
   if(isCal&&regMode){
@@ -1112,6 +1218,7 @@ function build(items,o,isCal){
     P.push({p:[[110,120],[130,120]],col:"#000000"},{p:[[120,110],[120,130]],col:"#000000"});
   }else{
     items.forEach(it=>{
+      if(it.mode&&it.mode!=="draw")return;
       const tr=itemTr(it);
       const sel=new Set();
       const bandOf=f=>{const d=(1-f.lum)*100;return d<o.fillT1?-1:d<o.fillT2?0:d<o.fillT3?1:d<o.fillT4?2:3};
@@ -1154,6 +1261,8 @@ function build(items,o,isCal){
       groups.push({pen:n,col:col,P:gp});
     }
   }else groups=[{pen:0,col:null,P:P}];
+  const hasTool=!isCal&&items.some(it=>it.mode&&it.mode!=="draw");
+  if(hasTool&&!P.length)groups=[];
   const two=!!o.twoPass&&!isCal,Ys=penReach(o);
   const Cx=o.paperX+PAPER_W/2,Cy=o.paperY-PAPER_H/2,rot=p=>p.map(q=>[2*Cx-q[0],2*Cy-q[1]]);
   const mx=Math.max(3,o.margin/2),mk=(x,y)=>[[[x-2.5,y],[x+2.5,y]],[[x,y-2.5],[x,y+2.5]]];
@@ -1175,12 +1284,28 @@ function build(items,o,isCal){
       outs.push({label:label,pen:g.pen,col:g.col,pass:pt.pass,polys:opt});
     });
   });
+  const nPen=prevP.length,prevT=[];
+  if(!isCal)["cut","deboss"].forEach(md=>{
+    const tp=toolPaths(md,o);if(!tp.length)return;
+    const to=makeToolOut(md,tp,o);if(!to.strokes.length)return;
+    outs.push(to);to.polys.forEach(p=>{prevP.push(p);prevCol.push(null);prevP2.push(false);prevT.push(md)});
+  });
   if(!outs.length)outs.push({label:"Plot",pen:0,col:null,pass:0,polys:[]});
   /* turn each output into G-code */
   const errs=[];let lx=Infinity,ly=Infinity,hx=-Infinity,hy=-Infinity;
   const zd=(o.zDraw-o.zPress),zu=o.zDraw+o.zLift,f3=v=>v.toFixed(3);
   let tDraw=0,tTravel=0,tMoves=0,tStrokes=0;
   outs.forEach(out=>{
+    if(out.tool){
+      const c=out.cfg,reach=Math.min(NYMAX+c.offY,o.penYMax);let a=1e9,b=1e9,cc=-1e9,d=-1e9;
+      out.strokes.forEach(s=>s.ops.forEach(q=>{const x=q.x-c.offX,y=q.y-c.offY;a=Math.min(a,x);cc=Math.max(cc,x);b=Math.min(b,y);d=Math.max(d,y)}));
+      lx=Math.min(lx,a);hx=Math.max(hx,cc);ly=Math.min(ly,b);hy=Math.max(hy,d);
+      if(a<0||cc>NXMAX){const m=TOOL_NAME[out.tool]+": nozzle X range "+a.toFixed(1)+" to "+cc.toFixed(1)+" is outside 0 to "+NXMAX+".";if(errs.indexOf(m)<0)errs.push(m)}
+      if(b<0||d>reach-c.offY){const m=TOOL_NAME[out.tool]+": tool Y range "+(b+c.offY).toFixed(1)+" to "+(d+c.offY).toFixed(1)+" goes outside the reachable area (limit "+reach.toFixed(1)+").";if(errs.indexOf(m)<0)errs.push(m)}
+      const g=toolGcode(out,o);out.gcode=g.gcode;out.draw=g.draw*c.passes;out.moves=g.moves;out.travel=0;
+      tDraw+=g.draw*c.passes*(o.fDraw/(c.spd*60));tMoves+=g.moves;tStrokes+=out.strokes.length*c.passes;out.N=[];
+      return;
+    }
     const N=out.polys.map(p=>p.map(q=>[q[0]-o.offX,q[1]-o.offY]));out.N=N;
     let a=Infinity,b=Infinity,c=-Infinity,d=-Infinity;
     N.forEach(p=>p.forEach(q=>{a=Math.min(a,q[0]);c=Math.max(c,q[0]);b=Math.min(b,q[1]);d=Math.max(d,q[1])}));
@@ -1215,7 +1340,7 @@ function build(items,o,isCal){
   const mesh={x0:m0x,y0:m0y,x1:m1x,y1:m1y,cx:cx,cy:cy,cmd:"PLOT_MESH MIN_X="+m0x.toFixed(0)+" MIN_Y="+m0y.toFixed(0)+" MAX_X="+m1x.toFixed(0)+" MAX_Y="+m1y.toFixed(0)+" COUNT_X="+cx+" COUNT_Y="+cy};
   const minutes=1.1*(tDraw/o.fDraw+tTravel/o.fTravel+tStrokes*2*o.zLift/o.fZ);
   return {mesh:mesh,outputs:outs,errs:errs,draw:tDraw,moves:tMoves,strokes:tStrokes,size:sizeTxt,minutes:minutes,
-          polys:prevP,sty:{col:multi?prevCol:null,p2:prevP2},two:two&&outs.some(x=>x.pass===2),
+          polys:prevP,sty:{col:multi?prevCol:null,p2:prevP2,tool:prevT.length?new Array(nPen).fill(null).concat(prevT):null},two:two&&outs.some(x=>x.pass===2),
           gcode:outs[0].gcode};
 }
 
@@ -1275,8 +1400,8 @@ function drawBed(polys,o,errs,mesh,sty){
     if(sim){drawSim(c,X,Y,d)}else{const bad=errs&&errs.length,base=css("--stroke"),warn=css("--warn"),amber="#ffb454";
     c.lineWidth=o.lwPrev?Math.max(1.4*d,(o.penW||0.5)*k):1.4*d;c.lineJoin="round";c.lineCap="round";
     polys.forEach((p,pi)=>{
-      const p2=sty&&sty.p2&&sty.p2[pi],col=sty&&sty.col&&sty.col[pi];
-      c.strokeStyle=bad?warn:col?visCol(col):p2?amber:base;
+      const p2=sty&&sty.p2&&sty.p2[pi],col=sty&&sty.col&&sty.col[pi],tl=sty&&sty.tool&&sty.tool[pi];
+      c.strokeStyle=bad?warn:tl?(tl==="cut"?"#ff6b6b":"#6fa8ff"):col?visCol(col):p2?amber:base;
       c.setLineDash(p2&&col?[4*d,3*d]:[]);
       c.beginPath();p.forEach((q,i)=>i?c.lineTo(X(q[0]),Y(q[1])):c.moveTo(X(q[0]),Y(q[1])));c.stroke()});
     c.setLineDash([]);}
@@ -1355,6 +1480,7 @@ function update0(){
   let msg=isCal&&regMode?"Photo alignment marks: 6 ringed crosses just inside the sheet edges (inset "+o.regIns+" mm), drawn at exact bed positions. Plot this on the sheet you will draw on with a black pen, keep your artwork clear of the margins, then take the photo with the sheet in view: it aligns itself from the marks.":isCal?"Calibration cross: 20 mm lines centred at X120 Y120 (pen position). Measure where its centre lands and correct the offsets.":"Inside the reachable area.";
   if(r.two)msg="Whole-page mode: "+r.outputs.length+" G-code files. Plot each pass 1 file first; then turn the sheet 180° in place and plot the pass 2 file. Amber lines in the preview are the pass 2 part (shown where they sit on the sheet).";
   else if(r.outputs.length>1)msg=r.outputs.length+" G-code files, one per pen: pick one in the list above the G-code, fit that pen, and plot it. The sheet stays where it is between pens.";
+  if(!isCal&&r.outputs.some(x=>x.tool))msg=r.outputs.length+" G-code files (Draw, Cut and Deboss objects are separate files). Pick one in the list above the G-code, fit that tool and run it; do not move the sheet between files. Red lines in the preview are cuts, blue lines are deboss."+(r.outputs.some(x=>x.tool==="cut")&&!(o.cuZ!==0)?" The cut Z is still 0.0: find it on scrap card first (Cutter tab).":"");
   setMsg(isCal?"note":"ok",msg);
   if(!isCal&&!(o.zDraw>0))setMsg("note",msg+" z_draw is still 0.0: enter the value you found with PEN_TOUCH before running this.");
 }
@@ -1381,7 +1507,7 @@ function renderList(){
   items.forEach((it,i)=>{
     const d=document.createElement("div");
     d.style.cssText="padding:6px 10px;margin:4px 0;border:1px solid "+(i===sel?"var(--accent)":"var(--line)")+";border-radius:4px;cursor:pointer;font-size:13px;color:var(--ink);display:flex;justify-content:space-between;gap:8px";
-    const a=document.createElement("span");a.textContent=(i+1)+". "+it.name;a.style.cssText="overflow:hidden;text-overflow:ellipsis;white-space:nowrap";
+    const a=document.createElement("span");a.textContent=(i+1)+". "+it.name+(it.mode&&it.mode!=="draw"?"  ["+TOOL_NAME[it.mode]+"]":"");a.style.cssText="overflow:hidden;text-overflow:ellipsis;white-space:nowrap";
     const b=document.createElement("span");b.textContent=fmt(it.W*it.s)+" × "+fmt(it.H*it.s)+" mm";b.style.color="var(--muted)";b.style.whiteSpace="nowrap";
     d.appendChild(a);d.appendChild(b);
     d.addEventListener("click",()=>{sel=i;renderList();syncFields();update()});
@@ -2155,12 +2281,6 @@ async function edAddFile(file){
   const e=FAMS[fam]&&FAMS[fam].group==="Added files"?FAMS[fam]:(FAMS[fam]={group:"Added files",src:{}});
   e.src[key]=async()=>buf.slice(0);
 }
-/* ---------- cutter scaffold ---------- */
-document.querySelectorAll("[data-tool]").forEach(b=>b.addEventListener("click",()=>{
-  document.querySelectorAll("[data-tool]").forEach(x=>x.classList.toggle("primary",x===b));
-  const t=b.dataset.tool;$("toolNote").textContent=t==="pen"?"The pen is the only tool that generates G-code today. The cutter and deboss pages below are a preview of the settings they will need, and nothing here is sent to the printer yet.":"The "+(t==="cutter"?"cutter":"deboss stylus")+" is not available yet. Output stays on the pen so nothing unsafe can be sent by accident.";
-  if(t!=="pen")setTimeout(()=>{document.querySelectorAll("[data-tool]").forEach(x=>x.classList.toggle("primary",x.dataset.tool==="pen"))},2500);
-}));
 /* ---------- plot simulation ---------- */
 let sim=null;
 function simBuild(){
@@ -2232,7 +2352,7 @@ function snapMove(it,tolMm){
 }
 /* ---------- undo / redo ---------- */
 let hist=[],hpos=-1,idc=0;
-function hkey(){return items.map(it=>(it.id||(it.id=++idc))+":"+[it.x,it.y,it.s,it.rot||0,it.fx||1,it.fy||1].map(v=>+(+v).toFixed(3)).join(",")).join("|")+"#"+sel}
+function hkey(){return items.map(it=>(it.id||(it.id=++idc))+":"+[it.x,it.y,it.s,it.rot||0,it.fx||1,it.fy||1,it.mode||"draw"].map(v=>+(+v).toFixed(3)).join(",")).join("|")+"#"+sel}
 function histPush(){
   const k=hkey();if(hpos>=0&&hist[hpos].key===k)return;
   hist=hist.slice(0,hpos+1);hist.push({key:k,list:items.map(it=>[it,it.x,it.y,it.s,it.rot||0,it.fx||1,it.fy||1]),sel:sel});
@@ -2255,13 +2375,13 @@ document.addEventListener("keydown",e=>{
 /* ---------- projects ---------- */
 function projectJSON(){
   const ids={};IDS.forEach(i=>ids[i]=$(i).value);["fillCross","incOver","fillOutline","paperLand","twoPass","regMarks","multiPen","lwUse","autoGap","lwPrev"].forEach(i=>ids[i]=$(i).checked);
-  return JSON.stringify({q2plotter:1,ids:ids,pens:penAssign,sel:sel,items:items.map(it=>({name:it.name,paste:it.paste,src:it.src,x:it.x,y:it.y,s:it.s,rot:it.rot||0,fx:it.fx||1,fy:it.fy||1}))});
+  return JSON.stringify({q2plotter:1,ids:ids,pens:penAssign,sel:sel,items:items.map(it=>({name:it.name,paste:it.paste,src:it.src,x:it.x,y:it.y,s:it.s,rot:it.rot||0,fx:it.fx||1,fy:it.fy||1,mode:it.mode||"draw",ed:it.ed||null}))});
 }
 function loadProject(txt){
   const p=JSON.parse(txt);if(!p||!p.q2plotter||!Array.isArray(p.items))throw new Error("That is not a plotter project.");
   Object.keys(p.ids||{}).forEach(k=>{const e=$(k);if(!e)return;if(e.type==="checkbox")e.checked=!!p.ids[k];else e.value=p.ids[k]});
   items=[];penAssign=p.pens||{};
-  p.items.forEach(a=>{try{const r=svgToPolys(a.src);if(!r.polys.length)return;const it=makeItem(r,a.name,a.paste);it.src=a.src;it.x=a.x;it.y=a.y;it.s=a.s;it.rot=a.rot||0;it.fx=a.fx||1;it.fy=a.fy||1;items.push(it)}catch(e){}});
+  p.items.forEach(a=>{try{const r=svgToPolys(a.src);if(!r.polys.length)return;const it=makeItem(r,a.name,a.paste);it.src=a.src;it.x=a.x;it.y=a.y;it.s=a.s;it.rot=a.rot||0;it.fx=a.fx||1;it.fy=a.fy||1;it.mode=a.mode||"draw";if(a.ed)it.ed=a.ed;items.push(it)}catch(e){}});
   sel=items.length?Math.min(Math.max(0,p.sel|0),items.length-1):-1;calibMode=regMode=false;
   toneVis();renderList();syncFields();update();histPush();
   setMsg("ok","Project loaded: "+items.length+" drawing"+(items.length===1?"":"s")+".");
@@ -2773,8 +2893,128 @@ function detectReg(){
     if(cs.some(c=>h[6]*c[0]+h[7]*c[1]+1<=0)||sa(base)*sa(cs)>=0){info.flipped=true;return null}}
   return {h:h,hi:hi,n:pr.length,rms:rms,pairs:pr};
 }
+
+/* ---------- cutting-mat registration: green mat quad, then the 1 inch grid ---------- */
+function matOn(){return !!$("matOn")&&$("matOn").checked}
+function matFitLine(pts){ /* total least squares line: returns {p:[x,y],d:[dx,dy]} */
+  let mx=0,my=0;pts.forEach(q=>{mx+=q[0];my+=q[1]});mx/=pts.length;my/=pts.length;
+  let sxx=0,sxy=0,syy=0;pts.forEach(q=>{const a=q[0]-mx,b=q[1]-my;sxx+=a*a;sxy+=a*b;syy+=b*b});
+  const th=0.5*Math.atan2(2*sxy,sxx-syy);return {p:[mx,my],d:[Math.cos(th),Math.sin(th)]};
+}
+function matXsect(a,b){const det=a.d[0]*(-b.d[1])-a.d[1]*(-b.d[0]);if(Math.abs(det)<1e-9)return null;
+  const rx=b.p[0]-a.p[0],ry=b.p[1]-a.p[1],t=(rx*(-b.d[1])-ry*(-b.d[0]))/det;return [a.p[0]+a.d[0]*t,a.p[1]+a.d[1]*t]}
+function matClose(m,W,H,r){ /* closing (dilate then erode) so thin grid lines do not cut the mat into separate cells */
+  const run=(a,want)=>{const t=new Uint8Array(W*H),o=new Uint8Array(W*H);
+    for(let y=0;y<H;y++)for(let x=0;x<W;x++){let v=want?0:1;for(let i=-r;i<=r;i++){const xx=x+i;if(xx<0||xx>=W)continue;const q=a[y*W+xx];if(want?q:!q){v=want?1:0;break}}t[y*W+x]=v}
+    for(let y=0;y<H;y++)for(let x=0;x<W;x++){let v=want?0:1;for(let j=-r;j<=r;j++){const yy=y+j;if(yy<0||yy>=H)continue;const q=t[yy*W+x];if(want?q:!q){v=want?1:0;break}}o[y*W+x]=v}
+    return o};
+  return run(run(m,1),0);
+}
+function matQuad(){ /* photo corners [RL,RR,FR,FL] (full-res px) of the green mat, or null */
+  const sc=Math.min(1,700/Math.max(phCv.width,phCv.height)),W=Math.round(phCv.width*sc),H=Math.round(phCv.height*sc);
+  const t=document.createElement("canvas");t.width=W;t.height=H;const c=t.getContext("2d");c.drawImage(phCv,0,0,W,H);const d=c.getImageData(0,0,W,H).data;
+  let m=new Uint8Array(W*H);
+  for(let i=0;i<W*H;i++){const r=d[i*4],g=d[i*4+1],b=d[i*4+2];m[i]=(g>r+14&&g>b+20&&g>80)?1:0}
+  m=matClose(m,W,H,3);m=open5(m,W,H);const blob=bigBlob(m,W,H,0.03,false);if(!blob)return (window.__matWhy=1,null);
+  const hl=hull(blobHull(blob,W,sc).map(p=>p.slice()));if(hl.length<4)return (window.__matWhy=2,null);
+  /* min-area rotated rectangle of the hull gives the orientation; its diagonal extremes give the corners */
+  let bt=0,ba=1e18;
+  for(let a=0;a<90;a+=1){const co=Math.cos(a*Math.PI/180),si=Math.sin(a*Math.PI/180);let u0=1e9,u1=-1e9,v0=1e9,v1=-1e9;
+    hl.forEach(p=>{const u=p[0]*co+p[1]*si,v=-p[0]*si+p[1]*co;u0=Math.min(u0,u);u1=Math.max(u1,u);v0=Math.min(v0,v);v1=Math.max(v1,v)});
+    if((u1-u0)*(v1-v0)<ba){ba=(u1-u0)*(v1-v0);bt=a}}
+  const co=Math.cos(bt*Math.PI/180),si=Math.sin(bt*Math.PI/180);
+  const ext=(su,sv)=>hl.reduce((a,p)=>{const f=su*(p[0]*co+p[1]*si)+sv*(-p[0]*si+p[1]*co),g=su*(a[0]*co+a[1]*si)+sv*(-a[0]*si+a[1]*co);return f>g?p:a},hl[0]);
+  let q=[ext(-1,-1),ext(1,-1),ext(1,1),ext(-1,1)];
+  /* order as top-left, top-right, bottom-right, bottom-left of the picture (rear of the printer at the top) */
+  const pk=f=>q.reduce((a,p)=>f(p)>f(a)?p:a,q[0]),tl=pk(p=>-(p[0]+p[1])),tr=pk(p=>p[0]-p[1]),br=pk(p=>p[0]+p[1]),bl=pk(p=>-p[0]+p[1]);
+  q=[tl,tr,br,bl];if(new Set(q.map(p=>p.join())).size<4)return (window.__matWhy=3,null);
+  /* straight-edge refinement from the blob's edge points */
+  const B=[],rows=new Map(),cols=new Map();
+  blob.forEach(p=>{const x=p%W,y=(p/W)|0,r=rows.get(y),cc=cols.get(x);
+    if(!r)rows.set(y,[x,x]);else{if(x<r[0])r[0]=x;if(x>r[1])r[1]=x}
+    if(!cc)cols.set(x,[y,y]);else{if(y<cc[0])cc[0]=y;if(y>cc[1])cc[1]=y}});
+  rows.forEach((r,y)=>{B.push([r[0],y]);B.push([r[1]+1,y])});cols.forEach((cc,x)=>{B.push([x,cc[0]]);B.push([x,cc[1]+1])});
+  let lines=[0,1,2,3].map(i=>{const a=q[i],b=q[(i+1)%4];return {p:a,d:(()=>{const l=Math.hypot(b[0]-a[0],b[1]-a[1])||1;return [(b[0]-a[0])/l,(b[1]-a[1])/l]})(),a:a,b:b}});
+  for(let it=0;it<4;it++){
+    const tol=it<2?0.025*W:0.006*W;
+    lines=lines.map(L=>{const a=L.a,b=L.b,len=Math.hypot(b[0]-a[0],b[1]-a[1]),dx=(b[0]-a[0])/len,dy=(b[1]-a[1])/len;
+      const nx=-L.d[1],ny=L.d[0],sel=B.filter(p=>{const u=((p[0]-L.p[0])*L.d[0]+(p[1]-L.p[1])*L.d[1]),dist=Math.abs((p[0]-L.p[0])*nx+(p[1]-L.p[1])*ny),t=((p[0]-a[0])*dx+(p[1]-a[1])*dy)/len;return dist<tol&&t>0.15&&t<0.85});
+      if(sel.length<12)return L;const f=matFitLine(sel);if(f.d[0]*dx+f.d[1]*dy<0){f.d[0]*=-1;f.d[1]*=-1}return {p:f.p,d:f.d,a:a,b:b}});
+  }
+  const cn=[0,1,2,3].map(i=>matXsect(lines[(i+3)%4],lines[i]));if(cn.some(p=>!p||!isFinite(p[0])))return (window.__matWhy=4,null);
+  const Ls=[0,1,2,3].map(i=>Math.hypot(cn[i][0]-cn[(i+1)%4][0],cn[i][1]-cn[(i+1)%4][1]));
+  window.__matDbg={q:q,cn:cn,Ls:Ls};
+  if(Math.max(...Ls)/Math.max(1,Math.min(...Ls))>1.8)return (window.__matWhy=5,null);
+  if(cn.some(p=>p[0]<-W*.02||p[1]<-H*.02||p[0]>W*1.02||p[1]>H*1.02))return (window.__matWhy=6,null);
+  const cr=(a,b,c)=>(b[0]-a[0])*(c[1]-b[1])-(b[1]-a[1])*(c[0]-b[0]);const sg=Math.sign(cr(cn[0],cn[1],cn[2]));
+  if(!sg||[1,2,3].some(i=>Math.sign(cr(cn[i],cn[(i+1)%4],cn[(i+2)%4]))!==sg))return (window.__matWhy=7,null);
+  return cn.map(p=>[p[0]/sc,p[1]/sc]);
+}
+/* rectify the photo onto the plate (2 px per mm) with a bed->photo homography h */
+function matRectify(h,P,RW){
+  const W=phCv.width,H=phCv.height,d=phCv.getContext("2d").getImageData(0,0,W,H).data,g=new Float32Array(RW*RW),gm=new Float32Array(RW*RW);
+  for(let j=0;j<RW;j++)for(let i=0;i<RW;i++){
+    const q=hApply(h,P.x+(i+0.5)/2,P.y-(j+0.5)/2),x=q[0]-0.5,y=q[1]-0.5,x0=Math.floor(x),y0=Math.floor(y);
+    if(x0<0||y0<0||x0>=W-1||y0>=H-1)continue;const fx=x-x0,fy=y-y0;let L=0,G=0;
+    [[0,0,(1-fx)*(1-fy)],[1,0,fx*(1-fy)],[0,1,(1-fx)*fy],[1,1,fx*fy]].forEach(a=>{const k=((y0+a[1])*W+x0+a[0])*4,r=d[k],gg=d[k+1],b=d[k+2];L+=a[2]*(0.2126*r+0.7152*gg+0.0722*b);G+=a[2]*((gg>r+14&&gg>b+20&&gg>80)?1:0)});
+    g[j*RW+i]=L;gm[j*RW+i]=G;
+  }
+  return {g:g,gm:gm};
+}
+function matBlur(a,N,r){ /* separable box blur */
+  const t=new Float32Array(N*N),o=new Float32Array(N*N),w=2*r+1;
+  for(let y=0;y<N;y++){let s=0;for(let x=-r;x<=r;x++)s+=a[y*N+Math.min(N-1,Math.max(0,x))];for(let x=0;x<N;x++){t[y*N+x]=s/w;s+=a[y*N+Math.min(N-1,x+r+1)]-a[y*N+Math.max(0,x-r)]}}
+  for(let x=0;x<N;x++){let s=0;for(let y=-r;y<=r;y++)s+=t[Math.min(N-1,Math.max(0,y))*N+x];for(let y=0;y<N;y++){o[y*N+x]=s/w;s+=t[Math.min(N-1,y+r+1)*N+x]-t[Math.max(0,y-r)*N+x]}}
+  return o;
+}
+function matGrid(h,P,pitchMm){ /* grid lines found on the rectified mat: returns the corrected corner points or null */
+  const RW=Math.round(P.s*2),R=matRectify(h,P,RW),N=RW,pitch=pitchMm*2;
+  const bl=matBlur(R.g,N,6),ln=new Float32Array(N*N);for(let i=0;i<N*N;i++)ln[i]=Math.max(0,R.g[i]-bl[i]-4);
+  const gb=matBlur(R.gm,N,4),G=new Uint8Array(N*N);for(let i=0;i<N*N;i++)G[i]=gb[i]>0.5?1:0;
+  const pv=new Float32Array(N),ph=new Float32Array(N),cv_=new Float32Array(N),ch=new Float32Array(N);
+  for(let y=0;y<N;y++)for(let x=0;x<N;x++){const i=y*N+x;if(!G[i])continue;pv[x]+=ln[i];cv_[x]++;ph[y]+=ln[i];ch[y]++}
+  const nv=Array.from(pv,(v,i)=>cv_[i]>N*0.25?v/cv_[i]:0),nh=Array.from(ph,(v,i)=>ch[i]>N*0.25?v/ch[i]:0);
+  const phase=pr=>{let best=-1,bp=0,sum=0,n=0;for(let f=0;f<pitch;f+=0.25){let s=0;for(let k=f;k<N-1;k+=pitch){const i=Math.round(k);s+=Math.max(pr[i],pr[Math.max(0,i-1)],pr[Math.min(N-1,i+1)])}sum+=s;n++;if(s>best){best=s;bp=f}}return {f:bp,ratio:best/(sum/n+1e-9)}};
+  const px=phase(nv),py=phase(nh);if(px.ratio<1.6||py.ratio<1.6)return {fail:"grid not visible ("+px.ratio.toFixed(1)+","+py.ratio.toFixed(1)+")"};
+  const meas=[],ideal=[];
+  for(let ex=px.f;ex<N-8;ex+=pitch)for(let ey=py.f;ey<N-8;ey+=pitch){
+    if(ex<8||ey<8)continue;let sw=0,sx=0,sy=0,gc=0;
+    for(let j=-6;j<=6;j++)for(let i=-6;i<=6;i++){const x=Math.round(ex)+i,y=Math.round(ey)+j;if(G[y*N+x])gc++;const w=ln[y*N+x];sw+=w;sx+=w*x;sy+=w*y}
+    if(gc<150||sw<80)continue;meas.push([sx/sw,sy/sw]);ideal.push([ex,ey]);
+  }
+  if(meas.length<20)return {fail:"only "+meas.length+" grid crossings found"};
+  let M=meas,I=ideal,C=null,rms=0;
+  for(let it=0;it<4;it++){C=homLS(M,I);if(!C)return {fail:"grid fit failed"};
+    const e=M.map((m,i)=>{const q=hApply(C,m[0],m[1]);return Math.hypot(q[0]-I[i][0],q[1]-I[i][1])});
+    rms=Math.sqrt(e.reduce((a,v)=>a+v*v,0)/e.length);const keep=e.map((v,i)=>v<=Math.max(1.0,2.2*rms)?i:-1).filter(i=>i>=0);
+    if(keep.length===M.length||keep.length<16)break;M=keep.map(i=>M[i]);I=keep.map(i=>I[i])}
+  const Ci=homLS(I,M);if(!Ci)return {fail:"grid fit failed"};
+  const cs=[[0,0],[N,0],[N,N],[0,N]].map(c=>{const m=hApply(Ci,c[0],c[1]);return [P.x+m[0]/2,P.y-m[1]/2]});
+  return {bed:cs,n:M.length,rms:rms/2,phase:[px.f/2,py.f/2]};
+}
+function matAuto(silent){
+  if(!phReady)return false;
+  let q=null;try{q=matQuad()}catch(e){console.error(e)}
+  if(!q){if(!silent)photoMsg("Couldn't find the green mat's outline. The whole mat edge should be in view, with the plate and printer not covered, and the photo taken from above with good light. Use the plate corner aligner instead.");return false}
+  const P=plateRect(),bedC=[[P.x,P.y],[P.x+P.s,P.y],[P.x+P.s,P.y-P.s],[P.x,P.y-P.s]];
+  let h=solveH(bedC,q);if(!h)return false;let note="from the mat corners only",err=null,gr=null;
+  try{gr=matGrid(h,P,25.4)}catch(e){console.error(e);gr={fail:e.message}}
+  window.__mat={quad:q,grid:gr};
+  if(gr&&gr.bed){
+    const ppm=Math.hypot(q[0][0]-q[1][0],q[0][1]-q[1][1])/P.s;
+    const shift=Math.max(...gr.bed.map((b,i)=>{const a=hApply(h,bedC[i][0],bedC[i][1]),c=hApply(h,b[0],b[1]);return Math.hypot(a[0]-c[0],a[1]-c[1])/ppm}));
+    if(shift<=4){const q2=gr.bed.map(b=>hApply(h,b[0],b[1])),h2=solveH(bedC,q2);if(h2){h=h2;q=q2;note="from the mat corners and "+gr.n+" grid crossings (grid fit "+gr.rms.toFixed(2)+" mm, moved the corners by up to "+shift.toFixed(1)+" mm)";err=gr.rms}}
+    else note="from the mat corners only (the grid disagreed with them by "+shift.toFixed(1)+" mm, so it was not used)";
+  }else if(gr)note="from the mat corners only ("+gr.fail+")";
+  const hi=solveH(q,bedC);if(!hi)return false;
+  lastImgPts=q;lastMode="reg";
+  measFwd=h;measInv=hi;underCv=buildUnder(h);underOn=true;$("photoOn").checked=true;$("aligner").hidden=true;
+  photoMsg("Aligned "+note+". Check that the dashed plate outline sits on the mat's edges. If the picture is turned, retake it with the rear of the printer at the top.");
+  update();return true;
+}
 function regAuto(silent){
   if(!phReady)return false;
+  if(matOn())return matAuto(silent);
   let r=null;try{r=detectReg()}catch(e){console.error(e)}
   if(!r){if(!silent&&refOn())photoMsg("Couldn't find the reference sheet's rings. Check that the sheet is flat and fully in view (at least 8 of its 12 rings, not covered by paper, the toolhead or glare), that the printer is parked out of the way, and that the plate size and position fields are right. Or use Align to plate corners.");
   else if(!silent)photoMsg("Couldn't find the registration marks in this photo. They need to be drawn with a dark pen (Make photo alignment marks), all four corner marks in view and not covered by the toolhead or your hand. Use the plate-corner alignment instead, or retake the photo.");return false}
@@ -2786,8 +3026,10 @@ function regAuto(silent){
 }
 $("bRegFind").addEventListener("click",()=>{if(phReady)regAuto(false)});
 setTimeout(()=>{$("refHint").hidden=!refOn()},0);
-$("refSheet").addEventListener("change",()=>{$("refHint").hidden=!refOn();$("bRegFind").textContent=refOn()?"Align from reference sheet":"Auto-align from marks";if(phReady)regAuto(false)});
-window.__q2={items:()=>items,edBake:edBake,edMake:edMake,edRefresh:edRefresh,edPanelSync:edPanelSync,sel:()=>sel,rst:()=>{edShown=null},sheet:()=>sheetLayout(),layout:()=>lastRegLayout,fwd:()=>measFwd,reset:()=>{measFwd=measInv=null;window.__reg=null}}; /* test hook */
+function regBtn(){$("refHint").hidden=!refOn();$("matHint").hidden=!matOn();$("bRegFind").textContent=matOn()?"Align from cutting mat":refOn()?"Align from reference sheet":"Auto-align from marks"}
+$("refSheet").addEventListener("change",()=>{if(refOn())$("matOn").checked=false;regBtn();if(phReady)regAuto(false)});
+$("matOn").addEventListener("change",()=>{if(matOn())$("refSheet").checked=false;regBtn();if(phReady)regAuto(false)});
+window.__q2={matQuad:()=>matQuad(),mat:()=>window.__mat,items:()=>items,edBake:edBake,edMake:edMake,edRefresh:edRefresh,edPanelSync:edPanelSync,sel:()=>sel,rst:()=>{edShown=null},sheet:()=>sheetLayout(),layout:()=>lastRegLayout,fwd:()=>measFwd,reset:()=>{measFwd=measInv=null;window.__reg=null}}; /* test hook */
 
 /* printable version of the alignment marks (true size SVG for the sheet size set under Sheet and paper) */
 function regPrintSvg(o){
@@ -3042,15 +3284,29 @@ window.__goTo=id=>{
   fld.forEach(p=>{const l=document.createElement("label");l.appendChild(document.createTextNode(p[0]));const i=document.createElement("input");i.type="number";i.step=p[1]==="rotDeg"?5:1;i.setAttribute("aria-label",p[0]);
     i.addEventListener("input",()=>{const t=$(p[1]);t.value=i.value;t.dispatchEvent(new Event("input",{bubbles:true}))});i.addEventListener("change",()=>{$(p[1]).dispatchEvent(new Event("change",{bubbles:true}))});
     l.appendChild(i);bar.appendChild(l);ins[p[1]]=i});
+  const ml=document.createElement("label");ml.appendChild(document.createTextNode("Tool"));const msel=document.createElement("select");msel.style.cssText="width:118px";msel.setAttribute("aria-label","Tool for this object");
+  [["draw","Draw (pen)"],["cut","Cut (blade)"],["deboss","Deboss"]].forEach(p=>{const op=document.createElement("option");op.value=p[0];op.textContent=p[1];msel.appendChild(op)});
+  msel.addEventListener("change",()=>{const it=items[sel];if(!it)return;it.mode=msel.value;renderList();update();histPush()});
+  ml.appendChild(msel);bar.appendChild(ml);
   const sp=document.createElement("span");sp.className="sp";bar.appendChild(sp);
   const bt=(t,id)=>{const b=document.createElement("button");b.type="button";b.className="btn";b.textContent=t;b.addEventListener("click",()=>$(id).click());bar.appendChild(b);return b};
   const ex=[bt("Flip ↔","bMirH"),bt("Flip ↕","bMirV"),bt("Duplicate","bDup"),bt("Delete","bDel"),bt("Undo","bUndo"),bt("Redo","bRedo")];
   host.parentNode.insertBefore(bar,host);
   window.__bar=()=>{const has=sel>=0&&items[sel];
+    msel.disabled=!has;msel.value=has&&items[sel].mode||"draw";
     fld.forEach(p=>{const i=ins[p[1]];i.disabled=!has;if(document.activeElement!==i)i.value=has?$(p[1]).value:""});
     ["bMirH","bMirV","bDup","bDel"].forEach((id,k)=>ex[k].disabled=!has);ex[4].disabled=$("bUndo").disabled;ex[5].disabled=$("bRedo").disabled};
   window.__bar();
 })();
+$("cuTest").addEventListener("click",()=>{
+  const mk=(t)=>{window.__q2.edMake(t);const it=items[sel];it.mode="cut";return it};
+  const a=mk("rect");a.ed.p.w=30;a.ed.p.h=30;a.ed.p.r=0;edRefresh(a);
+  const b=mk("ellipse");b.ed.p.w=22;b.ed.p.h=22;edRefresh(b);
+  const u=usable(readOpts()),cx=(u.x0+u.x1)/2,cy=(Math.max(u.ylo,0)+u.yhi)/2;
+  a.x=cx-15-20;a.y=cy-15;b.x=cx-11+20;b.y=cy-11;
+  renderList();syncFields();update();histPush();showTab("convert");
+  setMsg("note","Test cut added: a 30 mm square (sharp corners) and a 22 mm circle, both set to Cut. Pick the Cut file above the G-code, fit the blade and run it on scrap card.");
+});
 /* tabs: put the canvas where it is being used */
 document.querySelectorAll("nav button").forEach(b=>b.addEventListener("click",()=>{if(b.dataset.tab==="convert"||b.dataset.tab==="prev")hostCanvas();if(b.dataset.tab==="dev")devRefresh(true)}));
 /* download + info on the G-code panel */
