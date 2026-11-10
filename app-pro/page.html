@@ -6,6 +6,7 @@
 /* Layout: a workbench. Left column = inputs, right column = bed preview + output. Tabs for setup notes and the Klipper config. */
 :root{
   color-scheme:dark;
+  --nav:#262629; --edge:#3a3a40; --soft:#c8c8cf; --hover:#34343b; --tipbg:#1f1f23; --scroll:#5a5a62; --dot:#6b6b75;
   --bg:#232326; --panel:#2d2d31; --ink:#efeff2; --muted:#a3a3ad; --line:#4c4c55;
   --accent:#4a7dff; --accent-ink:#ffffff; --warn:#ff8a5c; --ok:#52d6a0;
   --bed:#54545a; --plate:#35353b; --grid:rgba(255,255,255,.09); --stroke:#f2f2f5; --shade:rgba(255,138,92,.16);
@@ -71,13 +72,13 @@ code{font:13px var(--font-mono);background:var(--bg);padding:1px 5px;border-radi
 #svgHold{position:absolute;left:-9999px;top:0;width:10px;height:10px;overflow:hidden;visibility:hidden}
 /* ---- Qidi slicer look: flat, compact, small radii, section headers with a rule, label-left / field-right rows ---- */
 :root{--accent:#4479fb;--btn:#36363c;--btn-hi:#42424a;--field:#26262a}
-*{scrollbar-width:thin;scrollbar-color:#5a5a62 transparent}
+*{scrollbar-width:thin;scrollbar-color:var(--scroll) transparent}
 body{font-size:13px;line-height:1.45}
 header h1{font-size:18px}
-nav{background:#262629;border-bottom:0;gap:0;margin-bottom:12px}
-nav button{border:0;border-radius:0;padding:9px 18px;color:#c8c8cf}
+nav{background:var(--nav);border-bottom:0;gap:0;margin-bottom:12px}
+nav button{border:0;border-radius:0;padding:9px 18px;color:var(--soft)}
 nav button[aria-selected="true"]{background:var(--accent);color:#fff}
-.panel{border-radius:3px;border:1px solid #3a3a40;padding:10px 12px}
+.panel{border-radius:3px;border:1px solid var(--edge);padding:10px 12px}
 .panel+.panel{margin-top:10px}
 h2{display:flex;align-items:center;gap:8px;text-transform:none;letter-spacing:0;font-size:13px;font-weight:600;color:var(--ink);margin:0 0 10px}
 h2::before{content:"";width:3px;height:13px;background:var(--accent);border-radius:1px;flex:none}
@@ -85,7 +86,7 @@ h2::after{content:"";flex:1;height:1px;background:var(--line);opacity:.6}
 .sub{display:flex;align-items:center;gap:8px;margin:14px 0 8px;font-size:12.5px;color:var(--ink)}
 .sub::after{content:"";flex:1;height:1px;background:var(--line);opacity:.6}
 .fields,.fields.three{grid-template-columns:minmax(0,1fr);gap:6px}
-.fields label{flex-direction:row;align-items:center;justify-content:space-between;gap:10px;color:#c8c8cf;font-size:13px}
+.fields label{flex-direction:row;align-items:center;justify-content:space-between;gap:10px;color:var(--soft);font-size:13px}
 .fields input[type=number],.fields input[type=text]{width:120px;flex:none;text-align:right}
 input[type=number],input[type=text],select{background:transparent;border:1px solid var(--line);border-radius:3px;padding:4px 8px;font-size:13px;height:28px}
 input[type=number]:focus,input[type=text]:focus,select:focus,textarea:focus{outline:0;border-color:var(--accent)}
@@ -96,13 +97,13 @@ textarea,pre,code{background:var(--field)}
 .btn.primary:hover{filter:brightness(1.1);background:var(--accent)}
 .btn:disabled{opacity:.45;cursor:default}
 input[type=checkbox],input[type=range]{accent-color:var(--accent)}
-canvas{border-radius:2px;border-color:#3a3a40}
+canvas{border-radius:2px;border-color:var(--edge)}
 .msg{border-radius:3px}
 .stats{font-size:12px}
 /* hover help: the explanatory text lives behind an info mark on each heading */
 .tip{position:relative;display:inline-flex;align-items:center;justify-content:center;width:15px;height:15px;border:1px solid var(--muted);border-radius:50%;font:600 10px var(--font-body);color:var(--muted);cursor:help;flex:none;font-style:normal;text-transform:none;letter-spacing:0}
 .tip:hover,.tip:focus{color:var(--ink);border-color:var(--ink);outline:0}
-.tip .tipbox{display:none;position:absolute;left:-6px;top:22px;z-index:80;width:min(340px,82vw);padding:9px 11px;background:#1f1f23;border:1px solid var(--line);border-radius:3px;box-shadow:0 6px 18px rgba(0,0,0,.45);font:400 12px/1.5 var(--font-body);color:var(--ink);text-align:left;white-space:normal;cursor:default}
+.tip .tipbox{display:none;position:absolute;left:-6px;top:22px;z-index:80;width:min(340px,82vw);padding:9px 11px;background:var(--tipbg);border:1px solid var(--line);border-radius:3px;box-shadow:0 6px 18px rgba(0,0,0,.45);font:400 12px/1.5 var(--font-body);color:var(--ink);text-align:left;white-space:normal;cursor:default}
 .tip:hover .tipbox,.tip:focus .tipbox,.tip:focus-within .tipbox{display:block}
 .tip .tipbox p{margin:0 0 7px}.tip .tipbox p:last-child{margin:0}
 .tip .tipbox.flip{left:auto;right:-6px}
@@ -114,7 +115,7 @@ canvas{border-radius:2px;border-color:#3a3a40}
   #convert #cvWrap{margin:0 auto}
 }
 .panel.fold>h2{cursor:pointer;user-select:none}
-.panel.fold>h2:hover{color:#fff}
+.panel.fold>h2:hover{color:var(--ink)}
 .panel.fold.shut>h2{margin-bottom:0}
 .panel.fold>h2 .chev{order:3;width:9px;height:9px;border-right:2px solid var(--muted);border-bottom:2px solid var(--muted);transform:rotate(45deg) translate(-2px,-2px);transition:transform .15s;flex:none;margin-left:2px}
 .panel.fold.shut>h2 .chev{transform:rotate(-45deg)}
@@ -141,9 +142,9 @@ details.paste summary:hover{color:var(--ink)}
 
 /* ---- Pro: workspace (Prepare / Preview / Device / Settings) ---- */
 nav{align-items:stretch}
-#navPrn{margin-left:auto;display:flex;align-items:center;gap:8px;padding:0 14px;font-size:12.5px;color:#c8c8cf;cursor:pointer;white-space:nowrap}
-#navPrn:hover{color:#fff}
-#navDot{width:9px;height:9px;border-radius:50%;background:#6b6b75;display:inline-block}
+#navPrn{margin-left:auto;display:flex;align-items:center;gap:8px;padding:0 14px;font-size:12.5px;color:var(--soft);cursor:pointer;white-space:nowrap}
+#navPrn:hover{color:var(--ink)}
+#navDot{width:9px;height:9px;border-radius:50%;background:var(--dot);display:inline-block}
 #navDot.on{background:var(--ok)}#navDot.off{background:var(--warn)}#navDot.busy{background:#ffb454}
 @media(min-width:1100px){
   .ws{display:grid;grid-template-columns:310px minmax(0,1fr) 330px;gap:10px;height:calc(100vh - 152px);min-height:480px}
@@ -158,18 +159,18 @@ nav{align-items:stretch}
 .col>.panel+.panel{margin-top:10px}
 #prepHost{display:flex;gap:8px;align-items:flex-start}
 #prepHost #cvWrap{flex:1;min-width:0}
-#tbar{display:flex;flex-direction:column;gap:1px;width:62px;flex:none;background:#262629;border:1px solid #3a3a40;border-radius:4px;padding:5px 3px}
-#tbar button{background:none;border:0;color:#c8c8cf;font:11px var(--font-body);padding:7px 2px;border-radius:3px;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:3px}
-#tbar button:hover{background:#34343b;color:#fff}
+#tbar{display:flex;flex-direction:column;gap:1px;width:62px;flex:none;background:var(--nav);border:1px solid var(--edge);border-radius:4px;padding:5px 3px}
+#tbar button{background:none;border:0;color:var(--soft);font:11px var(--font-body);padding:7px 2px;border-radius:3px;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:3px}
+#tbar button:hover{background:var(--hover);color:var(--ink)}
 #tbar svg{width:22px;height:22px;stroke:currentColor;fill:none;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
-#tbar hr{border:0;border-top:1px solid #3a3a40;margin:4px 2px;width:80%}
+#tbar hr{border:0;border-top:1px solid var(--edge);margin:4px 2px;width:80%}
 #objBar{display:flex;flex-wrap:wrap;gap:6px 12px;align-items:center;margin-bottom:8px;font-size:12px;color:var(--muted)}
 #objBar label{display:flex;flex-direction:row;align-items:center;gap:5px}
 #objBar input{width:62px}
 #objBar .sp{flex:1}
 @media(max-width:1099px){#prepHost{flex-direction:column}#tbar{flex-direction:row;flex-wrap:wrap;width:auto}#tbar button{width:58px}}
-#settNav{display:flex;flex-direction:column;gap:2px;align-content:flex-start;background:#262629;border:1px solid #3a3a40;border-radius:3px;padding:6px;height:max-content}
-#settNav button{background:none;border:0;text-align:left;color:#c8c8cf;padding:9px 12px;border-radius:3px;font:13px var(--font-body);cursor:pointer;display:flex;flex-direction:column;gap:1px}
+#settNav{display:flex;flex-direction:column;gap:2px;align-content:flex-start;background:var(--nav);border:1px solid var(--edge);border-radius:3px;padding:6px;height:max-content}
+#settNav button{background:none;border:0;text-align:left;color:var(--soft);padding:9px 12px;border-radius:3px;font:13px var(--font-body);cursor:pointer;display:flex;flex-direction:column;gap:1px}
 #settNav button small{color:var(--muted);font-size:11px}
 #settNav button[aria-selected="true"]{background:var(--accent);color:#fff}
 #settNav button[aria-selected="true"] small{color:#dbe5ff}
@@ -180,7 +181,7 @@ nav{align-items:stretch}
 .sumrow button{background:none;border:0;color:var(--accent);cursor:pointer;font:12.5px var(--font-body);padding:0 2px}
 .sumrow button:hover{text-decoration:underline}
 .pill{display:inline-flex;align-items:center;gap:6px;padding:2px 10px;border-radius:99px;border:1px solid var(--line);font-size:12.5px}
-.pill i{width:8px;height:8px;border-radius:50%;background:#6b6b75}
+.pill i{width:8px;height:8px;border-radius:50%;background:var(--dot)}
 .pill.on i{background:var(--ok)}.pill.off i{background:var(--warn)}
 .kv{display:grid;grid-template-columns:110px 1fr;gap:4px 10px;font-size:13px;margin-top:10px}
 .kv span:nth-child(odd){color:var(--muted)}
@@ -189,6 +190,20 @@ nav{align-items:stretch}
 .page{max-width:760px}
 @media(min-width:1100px){#prevSide #out{min-height:calc(100vh - 400px)}}
 #simScrub{flex:1;min-width:120px}
+
+/* light theme: follows the system unless the theme button sets Light or Dark */
+:root[data-theme="light"]{color-scheme:light;
+  --bg:#f3f3f6; --panel:#ffffff; --ink:#1d1d22; --muted:#62626c; --line:#cfcfd8;
+  --accent:#2f63e6; --warn:#c2410c; --ok:#0f9d6a;
+  --bed:#d9d9df; --plate:#f6f6f8; --grid:rgba(0,0,0,.09); --stroke:#16161a; --shade:rgba(194,65,12,.12);
+  --nav:#e7e7ec; --edge:#d3d3dc; --soft:#3c3c44; --hover:#dcdce4; --tipbg:#ffffff; --scroll:#b4b4be; --dot:#9a9aa5; --btn:#ececf1; --btn-hi:#e0e0e7; --field:#ffffff}
+@media (prefers-color-scheme: light){:root:not([data-theme="dark"]){color-scheme:light;
+  --bg:#f3f3f6; --panel:#ffffff; --ink:#1d1d22; --muted:#62626c; --line:#cfcfd8;
+  --accent:#2f63e6; --warn:#c2410c; --ok:#0f9d6a;
+  --bed:#d9d9df; --plate:#f6f6f8; --grid:rgba(0,0,0,.09); --stroke:#16161a; --shade:rgba(194,65,12,.12);
+  --nav:#e7e7ec; --edge:#d3d3dc; --soft:#3c3c44; --hover:#dcdce4; --tipbg:#ffffff; --scroll:#b4b4be; --dot:#9a9aa5; --btn:#ececf1; --btn-hi:#e0e0e7; --field:#ffffff}}
+:root[data-theme="light"] nav button[aria-selected="true"],:root[data-theme="light"] #settNav button[aria-selected="true"]{color:#fff}
+.modal{background:rgba(0,0,0,.65)}
 </style>
 
 </head><body>
@@ -1361,7 +1376,8 @@ function usable(o){
   if($("plBlock")&&$("plBlock").checked){const P=plateRect();r.x0=Math.max(r.x0,P.x);r.x1=Math.min(r.x1,P.x+P.s);r.yhi=Math.min(r.yhi,P.y);if(!o.incOver)r.ylo=Math.max(r.ylo,P.y-P.s)}
   return r;
 }
-function visCol(h){const n=parseInt(h.slice(1),16),r=n>>16&255,g=n>>8&255,b=n&255,l=(0.2126*r+0.7152*g+0.0722*b)/255;if(l>=0.5)return h;const t=0.62;return "rgb("+Math.round(r+(255-r)*t)+","+Math.round(g+(255-g)*t)+","+Math.round(b+(255-b)*t)+")"}
+function isLight(){return getComputedStyle(document.documentElement).colorScheme.indexOf("light")===0||css("--bg").toLowerCase()==="#f3f3f6"}
+function visCol(h){if(isLight())return h;const n=parseInt(h.slice(1),16),r=n>>16&255,g=n>>8&255,b=n&255,l=(0.2126*r+0.7152*g+0.0722*b)/255;if(l>=0.5)return h;const t=0.62;return "rgb("+Math.round(r+(255-r)*t)+","+Math.round(g+(255-g)*t)+","+Math.round(b+(255-b)*t)+")"}
 function drawBed(polys,o,errs,mesh,sty){
   const cv=$("cv"),c=cv.getContext("2d"),S=cv.width,d=window.devicePixelRatio||1,pad=36*d,k=(S-2*pad)/VSP;
   const X=x=>pad+(x-VX0)*k,Y=y=>S-pad-(y-VY0)*k;
@@ -3029,7 +3045,7 @@ setTimeout(()=>{$("refHint").hidden=!refOn()},0);
 function regBtn(){$("refHint").hidden=!refOn();$("matHint").hidden=!matOn();$("bRegFind").textContent=matOn()?"Align from cutting mat":refOn()?"Align from reference sheet":"Auto-align from marks"}
 $("refSheet").addEventListener("change",()=>{if(refOn())$("matOn").checked=false;regBtn();if(phReady)regAuto(false)});
 $("matOn").addEventListener("change",()=>{if(matOn())$("refSheet").checked=false;regBtn();if(phReady)regAuto(false)});
-window.__q2={matQuad:()=>matQuad(),mat:()=>window.__mat,items:()=>items,edBake:edBake,edMake:edMake,edRefresh:edRefresh,edPanelSync:edPanelSync,sel:()=>sel,rst:()=>{edShown=null},sheet:()=>sheetLayout(),layout:()=>lastRegLayout,fwd:()=>measFwd,reset:()=>{measFwd=measInv=null;window.__reg=null}}; /* test hook */
+window.__q2={repaint:()=>repaint(),matQuad:()=>matQuad(),mat:()=>window.__mat,items:()=>items,edBake:edBake,edMake:edMake,edRefresh:edRefresh,edPanelSync:edPanelSync,sel:()=>sel,rst:()=>{edShown=null},sheet:()=>sheetLayout(),layout:()=>lastRegLayout,fwd:()=>measFwd,reset:()=>{measFwd=measInv=null;window.__reg=null}}; /* test hook */
 
 /* printable version of the alignment marks (true size SVG for the sheet size set under Sheet and paper) */
 function regPrintSvg(o){
@@ -3399,6 +3415,21 @@ function renderReady(){
   $("readySum").style.color=need?"var(--ok)":"var(--muted)";
 }
 renderReady();
+})();
+
+/* theme: Auto / Light / Dark */
+(function(){
+  const KEY="q2plot.theme",get=()=>{try{return localStorage.getItem(KEY)||"dark"}catch(e){return "dark"}};
+  const apply=t=>{if(t==="auto")document.documentElement.removeAttribute("data-theme");else document.documentElement.setAttribute("data-theme",t)};
+  let t=get();apply(t);
+  const b=document.createElement("button");b.type="button";b.id="themeBtn";b.title="Colour theme: Auto follows your system";
+  b.style.cssText="background:none;border:0;color:var(--soft);font:12.5px var(--font-body);padding:0 12px;cursor:pointer;white-space:nowrap";
+  const label=()=>{b.textContent=(t==="light"?"☀ Light":t==="dark"?"☾ Dark":"◐ Auto")};label();
+  b.addEventListener("click",()=>{t=t==="dark"?"light":t==="light"?"auto":"dark";try{localStorage.setItem(KEY,t)}catch(e){}apply(t);label();try{window.__q2.repaint()}catch(e){}});
+  const nav=document.querySelector("nav"),pr=document.getElementById("navPrn");
+  if(pr)pr.style.marginLeft="auto",pr.before(b);else nav.appendChild(b);
+  if(pr)b.style.marginLeft="auto",pr.style.marginLeft="0";
+  window.matchMedia&&window.matchMedia("(prefers-color-scheme: light)").addEventListener&&window.matchMedia("(prefers-color-scheme: light)").addEventListener("change",()=>{try{window.__q2.repaint()}catch(e){}});
 })();
 </script>
 
