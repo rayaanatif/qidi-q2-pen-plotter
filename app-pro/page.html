@@ -3018,9 +3018,30 @@ function matGrid(h,P,pitchMm){ /* grid lines found on the rectified mat: returns
     const e=M.map((m,i)=>{const q=hApply(C,m[0],m[1]);return Math.hypot(q[0]-I[i][0],q[1]-I[i][1])});
     rms=Math.sqrt(e.reduce((a,v)=>a+v*v,0)/e.length);const keep=e.map((v,i)=>v<=Math.max(1.0,2.2*rms)?i:-1).filter(i=>i>=0);
     if(keep.length===M.length||keep.length<16)break;M=keep.map(i=>M[i]);I=keep.map(i=>I[i])}
-  const Ci=homLS(I,M);if(!Ci)return {fail:"grid fit failed"};
-  const cs=[[0,0],[N,0],[N,N],[0,N]].map(c=>{const m=hApply(Ci,c[0],c[1]);return [P.x+m[0]/2,P.y-m[1]/2]});
-  return {bed:cs,n:M.length,rms:rms/2,phase:[px.f/2,py.f/2]};
+  /* use every visible stretch of every grid line, not only the crossings: samples slide along their own line */
+  const near=(v,f)=>{const r=((v-f)%pitch+pitch)%pitch;return Math.min(r,pitch-r)};
+  const vs=[],hs=[];
+  for(let ex=px.f;ex<N-8;ex+=pitch){if(ex<8)continue;for(let y=8;y<N-8;y+=4){if(near(y,py.f)<9)continue;
+    let sw=0,sx=0,gc=0;for(let i=-5;i<=5;i++)for(let j=-1;j<=1;j++){const x=Math.round(ex)+i,yy=y+j;if(G[yy*N+x])gc++;const w=ln[yy*N+x];sw+=w;sx+=w*x}
+    if(gc<25||sw<70)continue;vs.push({m:[sx/sw,y],e:ex})}}
+  for(let ey=py.f;ey<N-8;ey+=pitch){if(ey<8)continue;for(let x=8;x<N-8;x+=4){if(near(x,px.f)<9)continue;
+    let sw=0,sy=0,gc=0;for(let j=-5;j<=5;j++)for(let i=-1;i<=1;i++){const yy=Math.round(ey)+j,xx=x+i;if(G[yy*N+xx])gc++;const w=ln[yy*N+xx];sw+=w;sy+=w*yy}
+    if(gc<25||sw<70)continue;hs.push({m:[x,sy/sw],e:ey})}}
+  let nS=0;
+  for(let it=0;it<4;it++){
+    const MM=M.slice(),II=I.slice();nS=0;
+    vs.forEach(s2=>{const q=hApply(C,s2.m[0],s2.m[1]);if(Math.abs(q[0]-s2.e)<2.5){MM.push(s2.m);II.push([s2.e,q[1]]);nS++}});
+    hs.forEach(s2=>{const q=hApply(C,s2.m[0],s2.m[1]);if(Math.abs(q[1]-s2.e)<2.5){MM.push(s2.m);II.push([q[0],s2.e]);nS++}});
+    const C2=homLS(MM,II);if(C2)C=C2;
+  }
+  const lat=[];for(let i=0;i<=6;i++)for(let j=0;j<=6;j++)lat.push([i*N/6,j*N/6]);
+  const Ci=homLS(lat.map(p=>hApply(C,p[0],p[1])),lat);if(!Ci)return {fail:"grid fit failed"};
+  /* centre the plate rectangle between the mat's four edge lines (the grid fixes size and tilt, the edges only fix the sideways position) */
+  const eg0=[[0,0],[N,0],[N,N],[0,N]].map(c=>hApply(C,c[0],c[1]));
+  const dxp=((eg0[0][0]+eg0[3][0])/2+((eg0[1][0]+eg0[2][0])/2-N))/2,dyp=((eg0[0][1]+eg0[1][1])/2+((eg0[2][1]+eg0[3][1])/2-N))/2;
+  const cs=[[0,0],[N,0],[N,N],[0,N]].map(c=>{const m=hApply(Ci,c[0]+dxp,c[1]+dyp);return [P.x+m[0]/2,P.y-m[1]/2]});
+  const eg=eg0.map(m=>[m[0]/2,m[1]/2]);
+  return {bed:cs,n:M.length,lines:nS,rms:rms/2,phase:[px.f/2-dxp/2,py.f/2-dyp/2],edgeIdeal:eg,shift:[dxp/2,dyp/2]};
 }
 function matAuto(silent){
   if(!phReady)return false;
@@ -3035,10 +3056,11 @@ function matAuto(silent){
   if(gr&&gr.bed){
     const ppm=Math.hypot(q[0][0]-q[1][0],q[0][1]-q[1][1])/P.s;
     const shift=Math.max(...gr.bed.map((b,i)=>{const a=hApply(h,bedC[i][0],bedC[i][1]),c=hApply(h,b[0],b[1]);return Math.hypot(a[0]-c[0],a[1]-c[1])/ppm}));
-    if(shift<=4){const q2=gr.bed.map(b=>hApply(h,b[0],b[1])),h2=solveH(bedC,q2);if(h2){h=h2;q=q2;window.__matLines={x0:P.x+gr.phase[0],y0:P.y-gr.phase[1],pitch:25.4};note="from the mat corners and "+gr.n+" grid crossings (grid fit "+gr.rms.toFixed(2)+" mm, moved the corners by up to "+shift.toFixed(1)+" mm)";err=gr.rms}}
+    if(shift<=4){const q2=gr.bed.map(b=>hApply(h,b[0],b[1])),h2=solveH(bedC,q2);if(h2){h=h2;q=q2;window.__matLines={x0:P.x+gr.phase[0],y0:P.y-gr.phase[1],pitch:25.4};note="from the mat edges, "+gr.n+" grid crossings and "+gr.lines+" points along the grid lines (grid fit "+gr.rms.toFixed(2)+" mm, moved the corners by up to "+shift.toFixed(1)+" mm)";err=gr.rms}}
     else note="from the mat corners only (the grid disagreed with them by "+shift.toFixed(1)+" mm, so it was not used)";
   }else if(gr)note="from the mat corners only ("+gr.fail+")";
   const hi=solveH(q,bedC);if(!hi)return false;
+  window.__mat.final=q;
   lastImgPts=q;lastMode="reg";
   measFwd=h;measInv=hi;underCv=buildUnder(h);underOn=true;$("photoOn").checked=true;$("aligner").hidden=true;
   photoMsg("Aligned "+note+". Check that the dashed plate outline sits on the mat's edges. If the plate outline is turned the wrong way, change which side the rear of the printer is on.");
