@@ -3027,6 +3027,7 @@ function matQuad1(TC,TG,OPEN){ /* photo corners [RL,RR,FR,FL] (full-res px) of t
     const pts=bands[i].filter(p=>p[2]);if(pts.length<20)continue;const itol2=Math.max(1.2,0.0025*W);
     let bestC=-1,bo=0;pts.forEach(q=>{const o=(q[0]-L.a[0])*(-uy)+(q[1]-L.a[1])*ux;let c=0;for(const r of pts){if(Math.abs((r[0]-L.a[0])*(-uy)+(r[1]-L.a[1])*ux-o)<itol2)c++}if(c>bestC){bestC=c;bo=o}});
     lines[i]={p:[L.a[0]+(-uy)*bo,L.a[1]+ux*bo],d:[ux,uy],a:L.a,b:L.b}}
+  window.__matCovPhoto=cov.slice();
   const cn=[0,1,2,3].map(i=>matXsect(lines[(i+3)%4],lines[i]));if(cn.some(p=>!p||!isFinite(p[0])))return (window.__matWhy=4,null);
   const Ls=[0,1,2,3].map(i=>Math.hypot(cn[i][0]-cn[(i+1)%4][0],cn[i][1]-cn[(i+1)%4][1]));
   window.__matDbg={q:q,cn:cn,Ls:Ls};
@@ -3094,7 +3095,17 @@ function matGrid(h,P,pitchMm){ /* grid lines found on the rectified mat: returns
   const Ci=homLS(lat.map(p=>hApply(C,p[0],p[1])),lat);if(!Ci)return {fail:"grid fit failed"};
   /* centre the plate rectangle between the mat's four edge lines (the grid fixes size and tilt, the edges only fix the sideways position) */
   const eg0=[[0,0],[N,0],[N,N],[0,N]].map(c=>hApply(C,c[0],c[1]));
-  const dxp=((eg0[0][0]+eg0[3][0])/2+((eg0[1][0]+eg0[2][0])/2-N))/2,dyp=((eg0[0][1]+eg0[1][1])/2+((eg0[2][1]+eg0[3][1])/2-N))/2;
+  /* The mat is square, so an edge that is mostly hidden (paper or a magnet over it, or low on the frame) takes its position from the opposite edge plus the width/height measured on the well-seen edges, instead of from the short stretch that can be seen. */
+  let lE=(eg0[0][0]+eg0[3][0])/2,rE=(eg0[1][0]+eg0[2][0])/2,tE=(eg0[0][1]+eg0[1][1])/2,bE=(eg0[2][1]+eg0[3][1])/2,sqNote=null;
+  {const cv=window.__matCovBed;
+   if(cv&&cv.length===4){const ok=i=>cv[i]>=0.5,weak=i=>cv[i]<0.5; /* order: top, right, bottom, left */
+    const Wd=rE-lE,Hd=bE-tE;
+    if(weak(2)&&ok(0)&&ok(1)&&ok(3)){bE=tE+Wd;sqNote="bottom"}
+    else if(weak(0)&&ok(2)&&ok(1)&&ok(3)){tE=bE-Wd;sqNote="top"}
+    else if(weak(3)&&ok(1)&&ok(0)&&ok(2)){lE=rE-Hd;sqNote="left"}
+    else if(weak(1)&&ok(3)&&ok(0)&&ok(2)){rE=lE+Hd;sqNote="right"}}}
+  window.__matSq=sqNote;
+  const dxp=(lE+(rE-N))/2,dyp=(tE+(bE-N))/2;
   const cs=[[0,0],[N,0],[N,N],[0,N]].map(c=>{const m=hApply(Ci,c[0]+dxp,c[1]+dyp);return [P.x+m[0]/2,P.y-m[1]/2]});
   const eg=eg0.map(m=>[m[0]/2,m[1]/2]);
   return {bed:cs,n:M.length,lines:nS,rms:rms/2,phase:[px.f/2-dxp/2,py.f/2-dyp/2],edgeIdeal:eg,shift:[dxp/2,dyp/2]};
@@ -3106,6 +3117,7 @@ function matAuto(silent){
   window.__matLines=null;
   const P=plateRect(),bedC=[[P.x,P.y],[P.x+P.s,P.y],[P.x+P.s,P.y-P.s],[P.x,P.y-P.s]];
   const rot={top:0,right:1,bottom:2,left:3}[$("matRear").value]||0;q=[0,1,2,3].map(i=>q[(i+rot)%4]);
+  window.__matCovBed=(window.__matCovPhoto||[]).length===4?[0,1,2,3].map(i=>window.__matCovPhoto[(i+rot)%4]):null;
   let h=solveH(bedC,q);if(!h)return false;let note="from the mat corners only",err=null,gr=null;
   try{gr=matGrid(h,P,25.4)}catch(e){console.error(e);gr={fail:e.message}}
   window.__mat={quad:q,grid:gr};
@@ -3115,6 +3127,7 @@ function matAuto(silent){
     if(shift<=6){const q2=gr.bed.map(b=>hApply(h,b[0],b[1])),h2=solveH(bedC,q2);if(h2){h=h2;q=q2;window.__matLines={x0:P.x+gr.phase[0],y0:P.y-gr.phase[1],pitch:25.4};note="from the mat edges, "+gr.n+" grid crossings and "+gr.lines+" points along the grid lines (grid fit "+gr.rms.toFixed(2)+" mm, moved the corners by up to "+shift.toFixed(1)+" mm)";err=gr.rms}}
     else note="from the mat corners only (the grid disagreed with them by "+shift.toFixed(1)+" mm, so it was not used)";
   }else if(gr)note="from the mat corners only ("+gr.fail+")";
+  if(window.__matSq&&gr&&gr.bed&&note.indexOf("grid crossings")>0)note+="; the "+window.__matSq+" edge was mostly hidden, so it was placed from the other three (the mat is square)";
   const hi=solveH(q,bedC);if(!hi)return false;
   window.__mat.final=q;
   lastImgPts=q;lastMode="reg";
