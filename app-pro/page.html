@@ -267,6 +267,7 @@ select optgroup{font-style:normal;font-weight:600;color:var(--muted)}
         <label>Origin Y (mm)<input type="number" id="orgY" value="10" step="1"></label>
         <label>Rotation (&deg;)<input type="number" id="rotDeg" value="0" step="5"></label>
       </div>
+      <label style="flex-direction:row;align-items:center;gap:8px;margin:8px 0 0;color:var(--ink);font-size:13px"><input type="checkbox" id="keepAR" checked> <span>Keep proportions <span id="keepARnote" style="color:var(--muted)"></span></span></label>
       <p class="hint">These four fields edit the <b>selected</b> drawing (click it in the preview or in the list above). Drag it in the preview to move it, or drag a corner square to resize it; the proportions stay locked. Drag the round handle above the box to rotate it (hold Shift to snap to 15&deg;), or type an angle. Origin is where its lower-left corner lands, as pen position in machine X/Y.</p>
       <div class="sub">Paper on the bed</div>
       <label style="flex-direction:row;align-items:center;gap:8px;margin:4px 0 8px;color:var(--ink);font-size:13px"><input type="checkbox" id="paperOn"> Paper mode (print on a sheet: shows the sheet and its margin, limited to the plate)</label>
@@ -1532,7 +1533,7 @@ function placeNew(it){
 }
 function fmt(v){return String(+v.toFixed(2))}
 function syncFields(){
-  fsInfo();if(window.__bar)window.__bar();const it=items[sel];if(!it)return;
+  keepARSync();fsInfo();if(window.__bar)window.__bar();const it=items[sel];if(!it)return;
   $("fitW").value=fmt(it.W*it.s);$("fitH").value=fmt(it.H*it.s);$("orgX").value=fmt(it.x);$("orgY").value=fmt(it.y);$("rotDeg").value=fmt(it.rot||0);
 }
 function renderList(){
@@ -1567,11 +1568,15 @@ IDS.forEach(i=>{if(["fitW","fitH","orgX","orgY"].indexOf(i)<0)$(i).addEventListe
 ["fitW","fitH","orgX","orgY"].forEach(id=>$(id).addEventListener("input",()=>{
   const it=items[sel],v=parseFloat($(id).value);
   if(it&&isFinite(v)){
-    if(id==="fitW"&&v>0&&it.W>1e-6){it.s=v/it.W;$("fitH").value=fmt(it.H*it.s)}
+    if((id==="fitW"||id==="fitH")&&v>0&&!arLocked(it)){
+      const x0=it.x,y0=it.y,P=it.ed.p;edBake(it);if(id==="fitW")P.w=v;else P.h=v;
+      try{edRefresh(it);it.x=x0;it.y=y0}catch(e){}
+      $("fitW").value=fmt(it.W*it.s);$("fitH").value=fmt(it.H*it.s)}
+    else if(id==="fitW"&&v>0&&it.W>1e-6){it.s=v/it.W;$("fitH").value=fmt(it.H*it.s)}
     else if(id==="fitH"&&v>0&&it.H>1e-6){it.s=v/it.H;$("fitW").value=fmt(it.W*it.s)}
     else if(id==="orgX")it.x=v;else if(id==="orgY")it.y=v;
     if(it.ed&&(id==="fitW"||id==="fitH"))edBake(it);
-    renderList();
+    renderList();if(it.ed&&!arLocked(it))histPush()
   }
   update();
 }));["fillCross","fillOutline","incOver"].forEach(i=>$(i).addEventListener("input",update));
@@ -2197,6 +2202,9 @@ function edBuild(ed){
   if(isFinite(k)&&k>0){r.polys.forEach(q=>q.forEach(p=>{p[0]*=k;p[1]*=k}));r.pwid=r.pwid.map(v=>v*k)}
   return {r:r,svg:svg};
 }
+function edFree(it){return !!(it&&it.ed&&it.ed.type!=="text"&&it.ed.p&&it.ed.p.w!=null&&it.ed.p.h!=null)}
+function arLocked(it,ev){return !edFree(it)||($("keepAR").checked!==!!(ev&&ev.shiftKey))}
+function keepARSync(){const it=items[sel],f=edFree(it),k=$("keepAR");k.disabled=!f;$("keepARnote").textContent=f?"(untick to stretch width and height separately; Shift while dragging does the opposite)":"(only shapes can be stretched; imported drawings and text keep their proportions)"}
 function edRefresh(it){
   const cx=it.x+it.W*it.s/2,cy=it.y+it.H*it.s/2,b=edBuild(it.ed),n=makeItem(b.r,it.name,false);
   ["polys","fills","pfid","pcol","pwid","mnx","mny","W","H","npts"].forEach(k=>it[k]=n[k]);
@@ -2524,6 +2532,12 @@ document.addEventListener("keydown",e=>{if(e.key==="Escape"&&$("cvWrap").classLi
     }else{
       const ddx=p.x-drag.ax,ddy=p.y-drag.ay,ex=Math.abs(ddx*t.c+ddy*t.sn),ey=Math.abs(-ddx*t.sn+ddy*t.c);
       let s;
+      if(!arLocked(it,ev)){ /* stretch width and height separately */
+        const P=it.ed.p;P.w=Math.max(0.5,ex);P.h=Math.max(0.5,ey);
+        try{edRefresh(it)}catch(e){return}
+        const w2=it.W,h2=it.H,left=drag.ci===0||drag.ci===3,bottom=drag.ci<2,dx=(left?w2:0)-w2/2,dy=(bottom?h2:0)-h2/2;
+        const cx=drag.ax-(dx*t.c-dy*t.sn),cy=drag.ay-(dx*t.sn+dy*t.c);it.x=cx-w2/2;it.y=cy-h2/2;
+        syncFields();if(!raf)raf=requestAnimationFrame(preview);return}
       if(it.W>1e-3&&it.H>1e-3)s=Math.max(ex/it.W,ey/it.H);else if(it.W>1e-3)s=ex/it.W;else s=ey/Math.max(it.H,1e-6);
       s=Math.max(s,1/Math.max(it.W,it.H,1e-6));it.s=s;
       const w2=it.W*s,h2=it.H*s,left=drag.ci===0||drag.ci===3,bottom=drag.ci<2;
