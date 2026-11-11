@@ -318,6 +318,7 @@ nav{align-items:stretch}
         <label style="flex-direction:row;align-items:center;gap:8px;margin:10px 0 0;color:var(--ink);font-size:13px"><input type="checkbox" id="plBlock" checked> Block areas off the plate</label>
         
         <label style="flex-direction:row;align-items:center;gap:8px;margin:10px 0 0;color:var(--ink);font-size:13px"><input type="checkbox" id="photoOn" checked> Show photo under the drawing</label>
+        <label id="matGridRow" hidden style="flex-direction:row;align-items:center;gap:8px;margin:6px 0 0;color:var(--ink);font-size:13px"><input type="checkbox" id="matGridOn" checked> Show the mat grid the app found (cyan lines)</label>
         <label style="margin-top:8px">Photo opacity<input type="range" id="photoAlpha" min="10" max="100" value="60"></label>
       </div>
       <p class="hint" id="photoMsg">Take a photo from above with the printer's rear at the top and the whole plate in view, then tap the four plate corners. Or, if your paper is placed as set under Paper on the bed, tap the four corners of the sheet instead.</p>
@@ -1386,6 +1387,10 @@ function drawBed(polys,o,errs,mesh,sty){
   c.save();c.beginPath();c.rect(pad,pad,S-2*pad,S-2*pad);c.clip();
   c.fillStyle=css("--plate");c.fillRect(X(0),Y(BED),BED*k,BED*k);
   if(typeof underCv!=="undefined"&&underCv&&underOn){c.globalAlpha=underAlpha;c.drawImage(underCv,X(BX0),Y(BY0+BSP),BSP*k,BSP*k);c.globalAlpha=1}
+  if(window.__matLines&&$("matGridOn")&&$("matGridOn").checked&&underCv&&underOn){const ML=window.__matLines;c.strokeStyle="#00e5ff";c.lineWidth=1.2*d;c.globalAlpha=0.9;
+    for(let g=ML.x0-Math.ceil((ML.x0-VX0)/ML.pitch)*ML.pitch;g<=VX0+VSP;g+=ML.pitch){if(g<VX0)continue;c.beginPath();c.moveTo(X(g),Y(VY0));c.lineTo(X(g),Y(VY0+VSP));c.stroke()}
+    for(let g=ML.y0-Math.ceil((ML.y0-VY0)/ML.pitch)*ML.pitch;g<=VY0+VSP;g+=ML.pitch){if(g<VY0)continue;c.beginPath();c.moveTo(X(VX0),Y(g));c.lineTo(X(VX0+VSP),Y(g));c.stroke()}
+    c.globalAlpha=1}
   const gs=[1,2,5,10,25,50].find(g=>VSP/g<=14)||50;
   c.strokeStyle=css("--grid");c.lineWidth=d;
   for(let g=Math.ceil(VX0/gs)*gs;g<=VX0+VSP;g+=gs){c.beginPath();c.moveTo(X(g),Y(VY0));c.lineTo(X(g),Y(VY0+VSP));c.stroke()}
@@ -2666,6 +2671,7 @@ $("bPhone").addEventListener("click",async()=>{
   }catch(e){photoMsg("Phone link failed: "+e.message)}
 });
 $("photoOn").addEventListener("input",e=>{underOn=e.target.checked;update()});
+$("matGridOn").addEventListener("input",()=>update());
 $("photoAlpha").addEventListener("input",e=>{underAlpha=e.target.value/100;update()});
 $("bPhotoClear").addEventListener("click",()=>{phReady=false;underCv=null;$("photoCtl").hidden=true;photoMsg("Photo removed.");update()});
 $("bAlign").addEventListener("click",()=>{if(phReady)openAligner("sheet")});
@@ -3020,6 +3026,7 @@ function matAuto(silent){
   if(!phReady)return false;
   let q=null;try{q=matQuad()}catch(e){console.error(e)}
   if(!q){if(!silent)photoMsg("Couldn't find the green mat's outline. The whole mat edge should be in view, with the plate and printer not covered, and the photo taken from above with good light. Use the plate corner aligner instead.");return false}
+  window.__matLines=null;
   const P=plateRect(),bedC=[[P.x,P.y],[P.x+P.s,P.y],[P.x+P.s,P.y-P.s],[P.x,P.y-P.s]];
   const rot={top:0,right:1,bottom:2,left:3}[$("matRear").value]||0;q=[0,1,2,3].map(i=>q[(i+rot)%4]);
   let h=solveH(bedC,q);if(!h)return false;let note="from the mat corners only",err=null,gr=null;
@@ -3028,7 +3035,7 @@ function matAuto(silent){
   if(gr&&gr.bed){
     const ppm=Math.hypot(q[0][0]-q[1][0],q[0][1]-q[1][1])/P.s;
     const shift=Math.max(...gr.bed.map((b,i)=>{const a=hApply(h,bedC[i][0],bedC[i][1]),c=hApply(h,b[0],b[1]);return Math.hypot(a[0]-c[0],a[1]-c[1])/ppm}));
-    if(shift<=4){const q2=gr.bed.map(b=>hApply(h,b[0],b[1])),h2=solveH(bedC,q2);if(h2){h=h2;q=q2;note="from the mat corners and "+gr.n+" grid crossings (grid fit "+gr.rms.toFixed(2)+" mm, moved the corners by up to "+shift.toFixed(1)+" mm)";err=gr.rms}}
+    if(shift<=4){const q2=gr.bed.map(b=>hApply(h,b[0],b[1])),h2=solveH(bedC,q2);if(h2){h=h2;q=q2;window.__matLines={x0:P.x+gr.phase[0],y0:P.y-gr.phase[1],pitch:25.4};note="from the mat corners and "+gr.n+" grid crossings (grid fit "+gr.rms.toFixed(2)+" mm, moved the corners by up to "+shift.toFixed(1)+" mm)";err=gr.rms}}
     else note="from the mat corners only (the grid disagreed with them by "+shift.toFixed(1)+" mm, so it was not used)";
   }else if(gr)note="from the mat corners only ("+gr.fail+")";
   const hi=solveH(q,bedC);if(!hi)return false;
@@ -3040,6 +3047,7 @@ function matAuto(silent){
 function regAuto(silent){
   if(!phReady)return false;
   if(matOn())return matAuto(silent);
+  window.__matLines=null;
   let r=null;try{r=detectReg()}catch(e){console.error(e)}
   if(!r){if(!silent&&refOn())photoMsg("Couldn't find the reference sheet's rings. Check that the sheet is flat and fully in view (at least 8 of its 12 rings, not covered by paper, the toolhead or glare), that the printer is parked out of the way, and that the plate size and position fields are right. Or use Align to plate corners.");
   else if(!silent)photoMsg("Couldn't find the registration marks in this photo. They need to be drawn with a dark pen (Make photo alignment marks), all four corner marks in view and not covered by the toolhead or your hand. Use the plate-corner alignment instead, or retake the photo.");return false}
@@ -3051,7 +3059,7 @@ function regAuto(silent){
 }
 $("bRegFind").addEventListener("click",()=>{if(phReady)regAuto(false)});
 setTimeout(()=>{$("refHint").hidden=!refOn()},0);
-function regBtn(){$("refHint").hidden=!refOn();$("matHint").hidden=!matOn();$("matRearRow").hidden=!matOn();$("bRegFind").textContent=matOn()?"Align from cutting mat":refOn()?"Align from reference sheet":"Auto-align from marks"}
+function regBtn(){$("refHint").hidden=!refOn();$("matHint").hidden=!matOn();$("matRearRow").hidden=!matOn();$("matGridRow").hidden=!matOn();$("bRegFind").textContent=matOn()?"Align from cutting mat":refOn()?"Align from reference sheet":"Auto-align from marks"}
 $("refSheet").addEventListener("change",()=>{if(refOn())$("matOn").checked=false;regBtn();if(phReady)regAuto(false)});
 try{$("matRear").value=localStorage.getItem("q2plot.matRear")||"top"}catch(e){}
 $("matRear").addEventListener("change",()=>{try{localStorage.setItem("q2plot.matRear",$("matRear").value)}catch(e){}if(phReady&&matOn())regAuto(false)});
