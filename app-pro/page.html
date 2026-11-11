@@ -301,7 +301,8 @@ nav{align-items:stretch}
       </div>
       <label style="flex-direction:row;align-items:center;gap:8px;margin:10px 0 0;color:var(--ink);font-size:13px"><input type="checkbox" id="refSheet"> Using alignment reference sheet</label>
       <label style="flex-direction:row;align-items:center;gap:8px;margin:6px 0 0;color:var(--ink);font-size:13px"><input type="checkbox" id="matOn"> Using the green cutting mat (trimmed to the plate)</label>
-      <p class="hint" id="matHint" hidden style="margin:4px 0 0">Lay the cutting mat trimmed to the plate size on the plate, square to its edges, with its grid facing up. Take the photo from above with the rear of the printer at the top of the picture. The app finds the mat's four corners (the green area), then straightens the result using the 1 inch grid lines, so the paper or material on top does not matter as long as the mat's edges and some of its grid stay visible. The mat is taken to fill the plate rectangle set below.</p>
+      <p class="hint" id="matHint" hidden style="margin:4px 0 0">Lay the cutting mat trimmed to the plate size on the plate, square to its edges, with its grid facing up. Take the photo from above and say below which side of the picture the rear of the printer is on (the square mat looks the same turned, so this cannot be guessed). The app finds the mat's four corners (the green area), then straightens the result using the 1 inch grid lines, so the paper or material on top does not matter as long as the mat's edges and some of its grid stay visible. The mat is taken to fill the plate rectangle set below.</p>
+      <label id="matRearRow" hidden style="margin:4px 0 0;font-size:13px">Rear of the printer is at the <select id="matRear"><option value="top">top</option><option value="right">right</option><option value="bottom">bottom</option><option value="left">left</option></select> of the photo</label>
       <p class="hint" id="refHint" hidden style="margin:4px 0 0">Tape the printed 280 mm reference sheet flat on the plate with its corner on the plate's rear-left corner. The app finds its 12 printed rings in the photo and aligns from them, no pen marks needed. Plate size and position are in the fields below.</p>
       <div id="qrBox" hidden style="margin-top:10px">
         <canvas id="qrCv" width="200" height="200" style="width:200px;height:200px;max-width:100%;border:1px solid var(--line);border-radius:4px;background:#fff"></canvas>
@@ -2930,7 +2931,7 @@ function matQuad(){ /* photo corners [RL,RR,FR,FL] (full-res px) of the green ma
   const sc=Math.min(1,700/Math.max(phCv.width,phCv.height)),W=Math.round(phCv.width*sc),H=Math.round(phCv.height*sc);
   const t=document.createElement("canvas");t.width=W;t.height=H;const c=t.getContext("2d");c.drawImage(phCv,0,0,W,H);const d=c.getImageData(0,0,W,H).data;
   let m=new Uint8Array(W*H);
-  for(let i=0;i<W*H;i++){const r=d[i*4],g=d[i*4+1],b=d[i*4+2];m[i]=(g>r+14&&g>b+20&&g>80)?1:0}
+  for(let i=0;i<W*H;i++){const r=d[i*4],g=d[i*4+1],b=d[i*4+2];m[i]=(g-(r+b)/2>8&&g>70)?1:0}
   m=matClose(m,W,H,3);m=open5(m,W,H);const blob=bigBlob(m,W,H,0.03,false);if(!blob)return (window.__matWhy=1,null);
   const hl=hull(blobHull(blob,W,sc).map(p=>p.slice()));if(hl.length<4)return (window.__matWhy=2,null);
   /* min-area rotated rectangle of the hull gives the orientation; its diagonal extremes give the corners */
@@ -2972,7 +2973,7 @@ function matRectify(h,P,RW){
   for(let j=0;j<RW;j++)for(let i=0;i<RW;i++){
     const q=hApply(h,P.x+(i+0.5)/2,P.y-(j+0.5)/2),x=q[0]-0.5,y=q[1]-0.5,x0=Math.floor(x),y0=Math.floor(y);
     if(x0<0||y0<0||x0>=W-1||y0>=H-1)continue;const fx=x-x0,fy=y-y0;let L=0,G=0;
-    [[0,0,(1-fx)*(1-fy)],[1,0,fx*(1-fy)],[0,1,(1-fx)*fy],[1,1,fx*fy]].forEach(a=>{const k=((y0+a[1])*W+x0+a[0])*4,r=d[k],gg=d[k+1],b=d[k+2];L+=a[2]*(0.2126*r+0.7152*gg+0.0722*b);G+=a[2]*((gg>r+14&&gg>b+20&&gg>80)?1:0)});
+    [[0,0,(1-fx)*(1-fy)],[1,0,fx*(1-fy)],[0,1,(1-fx)*fy],[1,1,fx*fy]].forEach(a=>{const k=((y0+a[1])*W+x0+a[0])*4,r=d[k],gg=d[k+1],b=d[k+2];L+=a[2]*(0.2126*r+0.7152*gg+0.0722*b);G+=a[2]*((gg-(r+b)/2>8&&gg>70)?1:0)});
     g[j*RW+i]=L;gm[j*RW+i]=G;
   }
   return {g:g,gm:gm};
@@ -3013,6 +3014,7 @@ function matAuto(silent){
   let q=null;try{q=matQuad()}catch(e){console.error(e)}
   if(!q){if(!silent)photoMsg("Couldn't find the green mat's outline. The whole mat edge should be in view, with the plate and printer not covered, and the photo taken from above with good light. Use the plate corner aligner instead.");return false}
   const P=plateRect(),bedC=[[P.x,P.y],[P.x+P.s,P.y],[P.x+P.s,P.y-P.s],[P.x,P.y-P.s]];
+  const rot={top:0,right:1,bottom:2,left:3}[$("matRear").value]||0;q=[0,1,2,3].map(i=>q[(i+rot)%4]);
   let h=solveH(bedC,q);if(!h)return false;let note="from the mat corners only",err=null,gr=null;
   try{gr=matGrid(h,P,25.4)}catch(e){console.error(e);gr={fail:e.message}}
   window.__mat={quad:q,grid:gr};
@@ -3025,7 +3027,7 @@ function matAuto(silent){
   const hi=solveH(q,bedC);if(!hi)return false;
   lastImgPts=q;lastMode="reg";
   measFwd=h;measInv=hi;underCv=buildUnder(h);underOn=true;$("photoOn").checked=true;$("aligner").hidden=true;
-  photoMsg("Aligned "+note+". Check that the dashed plate outline sits on the mat's edges. If the picture is turned, retake it with the rear of the printer at the top.");
+  photoMsg("Aligned "+note+". Check that the dashed plate outline sits on the mat's edges. If the plate outline is turned the wrong way, change which side the rear of the printer is on.");
   update();return true;
 }
 function regAuto(silent){
@@ -3042,8 +3044,10 @@ function regAuto(silent){
 }
 $("bRegFind").addEventListener("click",()=>{if(phReady)regAuto(false)});
 setTimeout(()=>{$("refHint").hidden=!refOn()},0);
-function regBtn(){$("refHint").hidden=!refOn();$("matHint").hidden=!matOn();$("bRegFind").textContent=matOn()?"Align from cutting mat":refOn()?"Align from reference sheet":"Auto-align from marks"}
+function regBtn(){$("refHint").hidden=!refOn();$("matHint").hidden=!matOn();$("matRearRow").hidden=!matOn();$("bRegFind").textContent=matOn()?"Align from cutting mat":refOn()?"Align from reference sheet":"Auto-align from marks"}
 $("refSheet").addEventListener("change",()=>{if(refOn())$("matOn").checked=false;regBtn();if(phReady)regAuto(false)});
+try{$("matRear").value=localStorage.getItem("q2plot.matRear")||"top"}catch(e){}
+$("matRear").addEventListener("change",()=>{try{localStorage.setItem("q2plot.matRear",$("matRear").value)}catch(e){}if(phReady&&matOn())regAuto(false)});
 $("matOn").addEventListener("change",()=>{if(matOn())$("refSheet").checked=false;regBtn();if(phReady)regAuto(false)});
 window.__q2={repaint:()=>repaint(),matQuad:()=>matQuad(),mat:()=>window.__mat,items:()=>items,edBake:edBake,edMake:edMake,edRefresh:edRefresh,edPanelSync:edPanelSync,sel:()=>sel,rst:()=>{edShown=null},sheet:()=>sheetLayout(),layout:()=>lastRegLayout,fwd:()=>measFwd,reset:()=>{measFwd=measInv=null;window.__reg=null}}; /* test hook */
 
