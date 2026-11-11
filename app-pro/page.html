@@ -2933,11 +2933,15 @@ function matClose(m,W,H,r){ /* closing (dilate then erode) so thin grid lines do
     return o};
   return run(run(m,1),0);
 }
-function matQuad(){ /* photo corners [RL,RR,FR,FL] (full-res px) of the green mat, or null */
+let matTh=[8,70];
+function matQuad(){
+  /* strict colour test first; dim or purple-lit photos fall back to a looser one */
+  const tries=[[8,70],[5,60]];for(const t of tries){matTh=t;const q=matQuad1(t[0],t[1]);if(q)return q}return null}
+function matQuad1(TC,TG){ /* photo corners [RL,RR,FR,FL] (full-res px) of the green mat, or null */
   const sc=Math.min(1,700/Math.max(phCv.width,phCv.height)),W=Math.round(phCv.width*sc),H=Math.round(phCv.height*sc);
   const t=document.createElement("canvas");t.width=W;t.height=H;const c=t.getContext("2d");c.drawImage(phCv,0,0,W,H);const d=c.getImageData(0,0,W,H).data;
   let m=new Uint8Array(W*H);
-  for(let i=0;i<W*H;i++){const r=d[i*4],g=d[i*4+1],b=d[i*4+2];m[i]=(g-(r+b)/2>8&&g>70)?1:0}
+  for(let i=0;i<W*H;i++){const r=d[i*4],g=d[i*4+1],b=d[i*4+2];m[i]=(g-(r+b)/2>TC&&g>TG)?1:0}
   m=matClose(m,W,H,3);m=open5(m,W,H);const blob=bigBlob(m,W,H,0.03,false);if(!blob)return (window.__matWhy=1,null);
   const hl=hull(blobHull(blob,W,sc).map(p=>p.slice()));if(hl.length<4)return (window.__matWhy=2,null);
   /* min-area rotated rectangle of the hull gives the orientation; its diagonal extremes give the corners */
@@ -2986,7 +2990,7 @@ function matRectify(h,P,RW){
   for(let j=0;j<RW;j++)for(let i=0;i<RW;i++){
     const q=hApply(h,P.x+(i+0.5)/2,P.y-(j+0.5)/2),x=q[0]-0.5,y=q[1]-0.5,x0=Math.floor(x),y0=Math.floor(y);
     if(x0<0||y0<0||x0>=W-1||y0>=H-1)continue;const fx=x-x0,fy=y-y0;let L=0,G=0;
-    [[0,0,(1-fx)*(1-fy)],[1,0,fx*(1-fy)],[0,1,(1-fx)*fy],[1,1,fx*fy]].forEach(a=>{const k=((y0+a[1])*W+x0+a[0])*4,r=d[k],gg=d[k+1],b=d[k+2];L+=a[2]*(0.2126*r+0.7152*gg+0.0722*b);G+=a[2]*((gg-(r+b)/2>8&&gg>70)?1:0)});
+    [[0,0,(1-fx)*(1-fy)],[1,0,fx*(1-fy)],[0,1,(1-fx)*fy],[1,1,fx*fy]].forEach(a=>{const k=((y0+a[1])*W+x0+a[0])*4,r=d[k],gg=d[k+1],b=d[k+2];L+=a[2]*(0.2126*r+0.7152*gg+0.0722*b);G+=a[2]*((gg-(r+b)/2>matTh[0]&&gg>matTh[1])?1:0)});
     g[j*RW+i]=L;gm[j*RW+i]=G;
   }
   return {g:g,gm:gm};
