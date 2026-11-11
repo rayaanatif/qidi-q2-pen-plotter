@@ -1405,17 +1405,12 @@ function drawBed(polys,o,errs,mesh,sty){
   if(xMax<BED)c.fillRect(X(xMax),Y(BED),(BED-xMax)*k,BED*k);
   /* whole A4 sheet (including the part hanging off the front of the bed) and its usable area */
   const u=usable(o);
-  c.setLineDash([7*d,5*d]);c.strokeStyle=css("--muted");c.lineWidth=1.2*d;
-  if(SHEET_ANG){const a=SHEET_ANG*Math.PI/180,cx=o.paperX+PAPER_W/2,cy=o.paperY-PAPER_H/2,cc=Math.cos(a),ss=Math.sin(a);
-    c.beginPath();[[-1,1],[1,1],[1,-1],[-1,-1]].forEach((q,i)=>{const dx=q[0]*PAPER_W/2,dy=q[1]*PAPER_H/2,wx=cx+dx*cc-dy*ss,wy=cy+dx*ss+dy*cc;i?c.lineTo(X(wx),Y(wy)):c.moveTo(X(wx),Y(wy))});c.closePath();c.stroke()}
-  else c.strokeRect(X(o.paperX),Y(o.paperY),PAPER_W*k,PAPER_H*k);
+  c.setLineDash([7*d,5*d]);c.lineWidth=1.2*d;
   c.strokeStyle=css("--ok");c.strokeRect(X(u.x0),Y(u.yhi),(u.x1-u.x0)*k,Math.max(0,u.yhi-u.ylo)*k);
   c.setLineDash([]);
   if(mesh){c.strokeStyle=css("--accent");c.lineWidth=1.2*d;c.setLineDash([3*d,4*d]);
     c.strokeRect(X(mesh.x0+o.offX),Y(mesh.y1+o.offY),(mesh.x1-mesh.x0)*k,(mesh.y1-mesh.y0)*k);c.setLineDash([])}
   c.font=(11*d)+"px IBM Plex Mono, monospace";c.textAlign="left";c.textBaseline="top";
-  c.fillStyle=css("--muted");c.fillText(PAPER_NAME,X(o.paperX)+4*d,Y(o.paperY)+(o.paperY>yMax?(o.paperY-yMax)*k+4*d:4*d));
-  if(o.paperY-PAPER_H<0){c.fillStyle=css("--warn");c.fillText("off the bed (unsupported)",X(o.paperX)+4*d,Y(0)+6*d)}
   if(yMax<BED){c.fillStyle=css("--warn");c.fillText("pen cannot reach",X(4),Y(BED)+4*d)}
   if(mesh){c.fillStyle=css("--accent");c.fillText("mesh area",X(mesh.x0+o.offX)+4*d,Y(mesh.y0+o.offY)-14*d)}
   if(polys){
