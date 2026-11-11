@@ -191,6 +191,9 @@ nav{align-items:stretch}
 @media(min-width:1100px){#prevSide #out{min-height:calc(100vh - 400px)}}
 #simScrub{flex:1;min-width:120px}
 
+select,select option,select optgroup{color:var(--ink)}
+select option,select optgroup{background:var(--field,var(--panel));color:var(--ink)}
+select optgroup{font-style:normal;font-weight:600;color:var(--muted)}
 /* light theme: follows the system unless the theme button sets Light or Dark */
 :root[data-theme="light"]{color-scheme:light;
   --bg:#f3f3f6; --panel:#ffffff; --ink:#1d1d22; --muted:#62626c; --line:#cfcfd8;
