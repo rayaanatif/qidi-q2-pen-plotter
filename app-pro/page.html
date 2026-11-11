@@ -1209,13 +1209,14 @@ function toolGcode(out,o){
   L.push("; FIT THE "+(out.tool==="cut"?"CUTTER (blade holder)":"DEBOSS STYLUS")+" BEFORE STARTING THIS FILE. Run it on the sheet where the drawing was placed; do not move the sheet.");
   L.push("G21","G90","M83","PLOT_START ; macro in plotter.cfg: checks homed, loads the bed mesh, lifts Z");
   if(c.acc)L.push("SET_VELOCITY_LIMIT ACCEL="+Math.round(c.acc)+" SQUARE_CORNER_VELOCITY=1 ; blade: slow accel keeps the swivel stable");
-  L.push("G1 Z"+f3(zT)+" F"+Math.round(o.fZ));
+  let firstStroke=true;
   for(let p=0;p<c.passes;p++){
     const zc=c.z-p*c.step,zh=zc+c.hop;
     L.push("; pass "+(p+1)+" of "+c.passes+"  Z="+zc.toFixed(2));
     out.strokes.forEach(s=>{
       const o0=s.ops[0],ap=N(o0.x-s.d0[0]*3*c.r,o0.y-s.d0[1]*3*c.r),st=N(o0.x,o0.y);
       L.push("G0 X"+f3(ap[0])+" Y"+f3(ap[1])+" F"+Math.round(o.fTravel));
+      if(firstStroke){L.push("G1 Z"+f3(zT)+" F"+Math.round(o.fZ)+" ; only lower once the head is away from the purge bin");firstStroke=false}
       if(c.r>0)L.push("G1 X"+f3(st[0])+" Y"+f3(st[1])+" F"+Math.round(o.fTravel));
       L.push("G1 Z"+f3(zc)+" F"+Math.round(o.fZ));
       let cur="c",px=o0.x,py=o0.y;
@@ -1342,11 +1343,13 @@ function build(items,o,isCal){
     if(out.pen)L.push("; FIT PEN "+out.pen+" ("+out.col+") BEFORE STARTING THIS FILE");
     if(out.pass===1)L.push("; PASS 1 of 2: after it finishes, turn the sheet 180 degrees in place (same rectangle), then run pass 2");
     if(out.pass===2)L.push("; PASS 2 of 2: the sheet must be turned 180 degrees in place; the coordinates here are already rotated");
-    L.push("G21","G90","M83","PLOT_START ; macro in plotter.cfg: checks homed, lifts Z, sets speeds","G1 Z"+f3(zu)+" F"+Math.round(o.fZ));
+    L.push("G21","G90","M83","PLOT_START ; macro in plotter.cfg: checks homed, lifts Z, leaves the purge bin, sets speeds");
     let draw=0,moves=0,trav=0,px=null,py=null;
     N.forEach(p=>{
       if(px!==null)trav+=Math.hypot(p[0][0]-px,p[0][1]-py);
-      L.push("G0 X"+f3(p[0][0])+" Y"+f3(p[0][1])+" F"+Math.round(o.fTravel),"G1 Z"+f3(zd)+" F"+Math.round(o.fZ));
+      L.push("G0 X"+f3(p[0][0])+" Y"+f3(p[0][1])+" F"+Math.round(o.fTravel));
+      if(px===null)L.push("G1 Z"+f3(zu)+" F"+Math.round(o.fZ)+" ; only lower to travel height once the head is away from the purge bin");
+      L.push("G1 Z"+f3(zd)+" F"+Math.round(o.fZ));
       for(let i=1;i<p.length;i++){L.push("G1 X"+f3(p[i][0])+" Y"+f3(p[i][1])+" F"+Math.round(o.fDraw));draw+=Math.hypot(p[i][0]-p[i-1][0],p[i][1]-p[i-1][1]);moves++}
       px=p[p.length-1][0];py=p[p.length-1][1];
       L.push("G1 Z"+f3(zu)+" F"+Math.round(o.fZ));
