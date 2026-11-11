@@ -2997,12 +2997,15 @@ function matQuad1(TC,TG,OPEN){ /* photo corners [RL,RR,FR,FL] (full-res px) of t
   blob.forEach(p=>{const x=p%W,y=(p/W)|0,r=rows.get(y),cc=cols.get(x);
     if(!r)rows.set(y,[x,x]);else{if(x<r[0])r[0]=x;if(x>r[1])r[1]=x}
     if(!cc)cols.set(x,[y,y]);else{if(y<cc[0])cc[0]=y;if(y>cc[1])cc[1]=y}});
-  rows.forEach((r,y)=>{B.push([r[0],y]);B.push([r[1]+1,y])});cols.forEach((cc,x)=>{B.push([x,cc[0]]);B.push([x,cc[1]+1])});
+  /* mark edge points whose outside is dark (frame, background). Where paper lies over the mat the blob's edge is the paper's edge, not the mat's, and that must not be fitted. */
+  const dkAt=(x,y)=>{x=Math.max(0,Math.min(W-1,x));y=Math.max(0,Math.min(H-1,y));const k=(y*W+x)*4;return (d[k]+d[k+1]+d[k+2])/3<70};
+  rows.forEach((r,y)=>{B.push([r[0],y,dkAt(r[0]-4,y)]);B.push([r[1]+1,y,dkAt(r[1]+5,y)])});cols.forEach((cc,x)=>{B.push([x,cc[0],dkAt(x,cc[0]-4)]);B.push([x,cc[1]+1,dkAt(x,cc[1]+5)])});
   let lines=[0,1,2,3].map(i=>{const a=q[i],b=q[(i+1)%4];return {p:a,d:(()=>{const l=Math.hypot(b[0]-a[0],b[1]-a[1])||1;return [(b[0]-a[0])/l,(b[1]-a[1])/l]})(),a:a,b:b}});
   /* each side: RANSAC on the edge points near it (robust to a toolhead or paper hiding part of the edge, and to the mat's tab), then refit */
   let seed=12345;const rnd=()=>{seed=(seed*1664525+1013904223)>>>0;return seed/4294967296};
   lines=lines.map(L=>{const a=L.a,b=L.b,len=Math.hypot(b[0]-a[0],b[1]-a[1]),dx=(b[0]-a[0])/len,dy=(b[1]-a[1])/len,nx=-dy,ny=dx;
-    const band=B.filter(p=>{const dist=Math.abs((p[0]-a[0])*nx+(p[1]-a[1])*ny),t=((p[0]-a[0])*dx+(p[1]-a[1])*dy)/len;return dist<0.03*W&&t>0.08&&t<0.92});
+    let band=B.filter(p=>{const dist=Math.abs((p[0]-a[0])*nx+(p[1]-a[1])*ny),t=((p[0]-a[0])*dx+(p[1]-a[1])*dy)/len;return dist<0.03*W&&t>0.02&&t<0.98});
+    {const bd=band.filter(p=>p[2]);if(bd.length>=0.25*band.length&&bd.length>=30)band=bd}
     if(band.length<20)return L;
     let best=null,bc=-1;const itol=Math.max(1.2,0.0025*W);
     for(let k=0;k<400;k++){const p1=band[(rnd()*band.length)|0],p2=band[(rnd()*band.length)|0],l=Math.hypot(p2[0]-p1[0],p2[1]-p1[1]);if(l<0.25*len)continue;
@@ -3053,7 +3056,7 @@ function matGrid(h,P,pitchMm){ /* grid lines found on the rectified mat: returns
     for(let j=-6;j<=6;j++)for(let i=-6;i<=6;i++){const x=Math.round(ex)+i,y=Math.round(ey)+j;if(G[y*N+x])gc++;const w=ln[y*N+x];sw+=w;sx+=w*x;sy+=w*y}
     if(gc<150||sw<80)continue;meas.push([sx/sw,sy/sw]);ideal.push([ex,ey]);
   }
-  if(meas.length<20)return {fail:"only "+meas.length+" grid crossings found"};
+  if(meas.length<12)return {fail:"only "+meas.length+" grid crossings found"};
   let M=meas,I=ideal,C=null,rms=0;
   for(let it=0;it<4;it++){C=homLS(M,I);if(!C)return {fail:"grid fit failed"};
     const e=M.map((m,i)=>{const q=hApply(C,m[0],m[1]);return Math.hypot(q[0]-I[i][0],q[1]-I[i][1])});
@@ -3097,7 +3100,7 @@ function matAuto(silent){
   if(gr&&gr.bed){
     const ppm=Math.hypot(q[0][0]-q[1][0],q[0][1]-q[1][1])/P.s;
     const shift=Math.max(...gr.bed.map((b,i)=>{const a=hApply(h,bedC[i][0],bedC[i][1]),c=hApply(h,b[0],b[1]);return Math.hypot(a[0]-c[0],a[1]-c[1])/ppm}));
-    if(shift<=4){const q2=gr.bed.map(b=>hApply(h,b[0],b[1])),h2=solveH(bedC,q2);if(h2){h=h2;q=q2;window.__matLines={x0:P.x+gr.phase[0],y0:P.y-gr.phase[1],pitch:25.4};note="from the mat edges, "+gr.n+" grid crossings and "+gr.lines+" points along the grid lines (grid fit "+gr.rms.toFixed(2)+" mm, moved the corners by up to "+shift.toFixed(1)+" mm)";err=gr.rms}}
+    if(shift<=6){const q2=gr.bed.map(b=>hApply(h,b[0],b[1])),h2=solveH(bedC,q2);if(h2){h=h2;q=q2;window.__matLines={x0:P.x+gr.phase[0],y0:P.y-gr.phase[1],pitch:25.4};note="from the mat edges, "+gr.n+" grid crossings and "+gr.lines+" points along the grid lines (grid fit "+gr.rms.toFixed(2)+" mm, moved the corners by up to "+shift.toFixed(1)+" mm)";err=gr.rms}}
     else note="from the mat corners only (the grid disagreed with them by "+shift.toFixed(1)+" mm, so it was not used)";
   }else if(gr)note="from the mat corners only ("+gr.fail+")";
   const hi=solveH(q,bedC);if(!hi)return false;
