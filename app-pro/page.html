@@ -2960,16 +2960,23 @@ function matClose(m,W,H,r){ /* closing (dilate then erode) so thin grid lines do
     return o};
   return run(run(m,1),0);
 }
+function matOpen(m,W,H,r){ /* opening (erode then dilate): removes thin green speckle outside the mat that would otherwise hang on to it */
+  const run=(a,want)=>{const t=new Uint8Array(W*H),o=new Uint8Array(W*H);
+    for(let y=0;y<H;y++)for(let x=0;x<W;x++){let v=want?0:1;for(let i=-r;i<=r;i++){const xx=x+i;if(xx<0||xx>=W)continue;const q=a[y*W+xx];if(want?q:!q){v=want?1:0;break}}t[y*W+x]=v}
+    for(let y=0;y<H;y++)for(let x=0;x<W;x++){let v=want?0:1;for(let j=-r;j<=r;j++){const yy=y+j;if(yy<0||yy>=H)continue;const q=t[yy*W+x];if(want?q:!q){v=want?1:0;break}}o[y*W+x]=v}
+    return o};
+  return run(run(m,0),1);
+}
 let matTh=[8,70];
 function matQuad(){
   /* strict colour test first; dim or purple-lit photos fall back to a looser one */
-  const tries=[[8,70],[5,60]];for(const t of tries){matTh=t;const q=matQuad1(t[0],t[1]);if(q)return q}return null}
-function matQuad1(TC,TG){ /* photo corners [RL,RR,FR,FL] (full-res px) of the green mat, or null */
+  const tries=[[8,70,1],[8,70,0],[5,60,1],[5,60,0]];for(const t of tries){matTh=t;const q=matQuad1(t[0],t[1],t[2]);if(q)return q}return null}
+function matQuad1(TC,TG,OPEN){ /* photo corners [RL,RR,FR,FL] (full-res px) of the green mat, or null */
   const sc=Math.min(1,700/Math.max(phCv.width,phCv.height)),W=Math.round(phCv.width*sc),H=Math.round(phCv.height*sc);
   const t=document.createElement("canvas");t.width=W;t.height=H;const c=t.getContext("2d");c.drawImage(phCv,0,0,W,H);const d=c.getImageData(0,0,W,H).data;
   let m=new Uint8Array(W*H);
   for(let i=0;i<W*H;i++){const r=d[i*4],g=d[i*4+1],b=d[i*4+2];m[i]=(g-(r+b)/2>TC&&g>TG)?1:0}
-  m=matClose(m,W,H,3);m=open5(m,W,H);const blob=bigBlob(m,W,H,0.03,false);if(!blob)return (window.__matWhy=1,null);
+  m=matClose(m,W,H,3);m=open5(m,W,H);if(OPEN)m=matOpen(m,W,H,Math.max(4,Math.round(0.011*W)));const blob=bigBlob(m,W,H,0.03,false);if(!blob)return (window.__matWhy=1,null);
   const hl=hull(blobHull(blob,W,sc).map(p=>p.slice()));if(hl.length<4)return (window.__matWhy=2,null);
   /* min-area rotated rectangle of the hull gives the orientation; its diagonal extremes give the corners */
   let bt=0,ba=1e18;
