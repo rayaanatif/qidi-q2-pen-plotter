@@ -62,3 +62,26 @@ Change `params.py` and rerun `python3 cutter_bay.py; python3 cutter_adjust.py; p
 - The blade is always exposed (about 5 mm free-hanging). Lift Z before travelling near the purge bin, and run homing and bed mesh with the cutter off.
 - The nose is flush with the bottom of the tube, so Z touch needs its own calibration.
 - The earlier notch-and-finger retention in v1 could not hold the coil's push, so it was replaced by the key.
+
+## v3: true-CAD STEP files (`v3_step/`)
+
+Every cutter part is rebuilt as a parametric B-rep (OpenCascade via build123d), so circles are real cylinders and cones, and the springs and threads are real helical sweeps, not triangle meshes. Each part is one valid solid. Files ending `_model_orientation.step` are in the printer frame; `_print.step` and `print_stl/*.stl` are laid out for printing (bay and rod flipped, the rest unchanged). Regenerate with `scripts/export_all.py` (needs `pip install build123d`).
+
+| Part | Print orientation | Notes |
+|---|---|---|
+| `qs_cutter_bay_v3` | bracket down | flanges now use the full intended profile (see changes) |
+| `qs_cutter_adj_frame_v3` | tube bottom on bed | |
+| `qs_cutter_adj_plunger_v3` | disc down | |
+| `qs_cutter_adj_rod_knob_v3` | knob down, 100% infill | |
+| `qs_cutter_key_v3` | flat | |
+| `qs_cutter_pusher_v3_soft/std/firm/hard` | disc down | fixed-force alternatives |
+
+**Print tolerances built in (all radial or per side):** holder bore 0.175, nut thread 0.3 (axial and radial), plunger cap to tube 0.3, plunger disc 1.1, plunger tab to slot 0.3, key to pocket 0.3 sideways and 0.15 to 0.25 in height, tab to slot ceiling 0.4. Every overhang is 45 degrees or steeper: coil diamond faces (46 degrees or 45), thread flanks (45), conical roofs inside the cap and arm, cone under the nut, tab underside. The coil's helical land underside follows the coil slope, so nothing needs a bridge or support.
+
+**Changes from v2:**
+- Bay flanges: v2's voxel model trimmed them to y 110.6 because a non-convex profile was treated as convex. v3 uses the intended profile (to y 112.5), which is what the key pockets need. Check the key slides in before relying on it.
+- Slot ceiling above the plunger tab raised 0.4 mm (it was zero clearance).
+- Coil tips get 0.15 mm flats (0.3 mm tall) because a razor tip does not print. Stiffness changes by under 1%.
+- Not changed: all dimensions, thread, force table, assembly order.
+
+**Checked in CAD (boolean interference, 0 mm3 everywhere):** holder in bay; frame, key and plunger against the bay; plunger and rod against the frame through 0 to 7 mm preload, with the rod screwed down along the thread; rod 0.15 mm off-centre in the nut. Compared with v2's voxel parts: 98.5 to 99.2% overlap, the remainder being surface quantisation, except the bay flange change above.
