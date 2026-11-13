@@ -1,11 +1,11 @@
 """Cutter bay for a GCC blade holder: hangs the holder by its flange, rail/bracket identical to pen bay v5.
-Run: python3 cutter_bay.py   -> qs_cutter_bay_v1.stl  (+ Fcutter_bay.npy voxel field for the fit check)"""
+Run: python3 cutter_bay.py   -> qs_cutter_bay_v2.stl  (+ Fcutter_bay.npy voxel field for the fit check)"""
 import sys; sys.path.insert(0,".")
 import numpy as np
 from vf import *
 import cad
 from params import *
-from module_geom import roofs
+from module_geom import *
 WXL,WXR=-26.37,27.23; HR=104.5; TOP=113.5; H0=63.5
 G=Grid(-35,38,76,132,-1,116)
 s2=np.sqrt(2)
@@ -52,17 +52,13 @@ for (xa,xb) in ((CX+6.8,CX+10.4),(CX-10.4,CX-6.8)):
 WG=[(110.0,TOP),(120.0,TOP),(120.0,64.0),(110.0,54.0)]
 for (xa,xb) in ((CX+8.5,CX+10.8),(CX-10.8,CX-8.5)):
     G.op('add',(xa,xb),(109,121),(53,TOP+0.5),sd_poly_prism(WG,(xa,xb),'x'))
-# detent notches in the channel walls (3 positions, 3 mm apart): flat roof catches the module, 45 deg floor
-for roof in roofs():
-    for sg in (-1,1):
-        NP=[(6.7,roof),(7.9,roof),(7.9,roof-0.5),(6.7,roof-1.7)]   # (|x-CX|, h)
-        def notch(X,Y,H,sg=sg,roof=roof):
-            u=sg*(X-CX); d=sd_poly2(u,H,NP)
-            return np.maximum(d,np.maximum(110.3-Y,Y-113.2))
-        G.op('sub',((CX-8.2) if sg<0 else (CX+6.4),(CX-6.4) if sg<0 else (CX+8.2)),(110,113.5),(roof-2,roof+1),notch)
+# key pockets in the channel walls (open to the front): a printed key bar slides in through them and holds the module down
+for sg in (-1,1):
+    x0,x1=((CX-8.0,CX-6.6) if sg<0 else (CX+6.6,CX+8.0))
+    G.op('sub',(x0-.2,x1+.2),(110,113.5),(POCK_H0-.5,POCK_H1+.5),sd_box(x0,x1,110.3,114.0,POCK_H0,POCK_H1))
 np.save("Fcutter_bay.npy",G.F.astype(np.float16))
 T,vol=mesh(G)
-cad.write("qs_cutter_bay_v1.stl",T)
-print("qs_cutter_bay_v1.stl",len(T),"vol %.0f mm3"%vol,"roofs",[round(r,2) for r in roofs()])
+cad.write("qs_cutter_bay_v2.stl",T)
+print("qs_cutter_bay_v2.stl",len(T),"vol %.0f mm3"%vol)
 from scipy import ndimage
 lab,n=ndimage.label(G.F>0.5); print("separate solid bodies:",n)

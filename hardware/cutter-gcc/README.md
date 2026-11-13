@@ -1,58 +1,64 @@
-# GCC blade holder: cutter bay + pusher module (v1, untested)
+# GCC blade holder: cutter bay + adjustable pusher (v2, untested)
 
-Nothing here has been printed or cut yet. It was checked only by a voxel fit test against your measured holder dimensions.
+Nothing here has been printed or cut yet. It was checked only by a voxel fit test against the holder dimensions you measured.
 
-![assembly](cutter_assembly.png)
+![assembly](cutter_adjust_assembly.png)
 
-## What it is
+## How it works
 
-A GCC-style holder hangs by its flange, and a spring presses its top pin. The pin force minus the holder's own internal spring is the cutting force, and the blade backs off when the surface rises. That is the same idea as the Bambu cutter, with a printed coil as the spring.
+A GCC-style holder hangs by its flange and a spring presses its top pin. The pin force minus the holder's own internal spring is the cutting force, and the blade backs off if the surface rises. A **thumbwheel** compresses the printed coil further, so you dial the force by hand. The holder's 165 gf at full travel does not add to the force, it opposes the coil.
 
-| Part | File | Notes |
+## Parts (print list)
+
+| File | Qty | Notes |
 | --- | --- | --- |
-| Cutter bay | `qs_cutter_bay_v1.stl` | Same bracket, spine, dovetails, flanges and wings as pen bay v5. Print the same way (bracket down, no supports). The tube is 3.0 mm further forward (axis y 118.2, was 115.2) so the 15.75 mm flange clears the spine plate. |
-| Pusher module | `qs_cutter_pusher_v1_soft/std/firm/hard.stl` | One part: tongue, arm, coil, pusher disc. Print upright with the disc on the bed, no supports. |
+| `qs_cutter_bay_v2.stl` | 1 | Same bracket, spine, dovetails, flanges and wings as pen bay v5, print bracket down, no supports. Tube axis is 3.0 mm further forward (y 118.2, was 115.2). Two key pockets in the flange walls. |
+| `qs_cutter_adj_frame_v2.stl` | 1 | Tongue, guide tube and a printed nut. Print with the tube bottom on the bed, no supports. |
+| `qs_cutter_adj_plunger_v2.stl` | 1 | Pusher disc, coil, cap and a tab that shows the setting. Print disc down, no supports. |
+| `qs_cutter_adj_rod_knob_v2.stl` | 1 | Threaded rod and thumb knob. Print with the knob on the bed. |
+| `qs_cutter_key_v2.stl` | 1 | Slides in from the front through the flange pockets and holds the frame down. |
+| `qs_cutter_pusher_v2_soft/std/firm/hard.stl` | optional | Fixed-force modules with no thumbwheel (coil 24, 33, 58, 103 gf/mm). They use the same bay and key. |
 
-Coil variants (estimated from beam theory, printed PETG, **plus or minus 40%**):
+Thread: 3 mm pitch, right hand, 0.3 mm radial clearance. Print the rod and frame with 0.2 mm layers, 100% infill for the rod.
 
-| Variant | Coil rate | Total stiffness at the blade | Cut force at pin depression 4.6 mm (blade out about 4 mm) |
-| --- | --- | --- | --- |
-| soft | 24 gf/mm | 44 gf/mm | about 60 gf |
-| std | 33 gf/mm | 52 gf/mm | about 73 gf |
-| firm | 58 gf/mm | 78 gf/mm | about 110 gf |
-| hard | 103 gf/mm | 122 gf/mm | about 295 gf (above 165 gf from blade out about 5 mm) |
+## Assembly order
 
-Cut force (gf) against pin depression x (blade out is about 0.875 x):
+1. Drop the holder into the bay tube (flange on the seat ring).
+2. Drop the plunger into the frame from below and the frame onto the bay's channel, so the disc lands on the pin. Press the frame down until the key pockets show at the top.
+3. Slide the key in from the front through both flange pockets, above the frame.
+4. Screw the rod in from the top, last. Turn **clockwise** to raise the force. The tab and ticks on the front of the tube show the setting.
 
-| x (mm) | 5 | 4 | 3 | 2 | 1 | 0 |
-| --- | --- | --- | --- | --- | --- | --- |
-| soft | 44 | 88 | 131 | 175 | 219 | 263 |
-| std | 52 | 104 | 156 | 208 | 260 | 312 |
-| firm | 78 | 155 | 233 | 310 | 388 | 466 |
-| hard | 245 | 368 | 490 | 613 | 736 | 858 |
+To remove it, unscrew the rod, pull the key, lift the frame and plunger out. The rod has to come out first because the key slides past it.
 
-Free-hanging (no contact) soft, std and firm sit at x = 6.0 (hard at 7.0), which is about 5 mm of blade. Lowering the carriage after touching the mat raises the force by the total stiffness per mm, so a 0.1 mm Z error is about 5 gf (std). The force is set by Z, so calibrate it with your kitchen scale.
+## Force setting (coil about 32 gf/mm, estimated, plus or minus 40%)
 
-## Fit
+Cut force in gf at pin depression x (blade out is about 0.875 x), for rod travel from the zero mark:
 
-1. Drop the holder in from the top. The flange sits on the tube's seat ring (bore 11.9 mm for your 11.55 mm barrel).
-2. Drop the pusher module in from the top between the two flanges. It clicks into one of three notches (3 mm apart), and the coil pushes the disc onto the pin. The notch row is your coarse blade-exposure adjustment.
-3. To change the holder, lift the module out first (grip shelf at the top).
+| Rod travel | Turns | x = 5 | x = 4.6 (about 4 mm blade) | x = 4 | x = 3 |
+| --- | --- | --- | --- | --- | --- |
+| 0 mm | 0 | 51 | 72 | 102 | 153 |
+| 3 mm | 1 | 146 | 167 | 197 | 248 |
+| 6 mm | 2 | 241 | 262 | 292 | 344 |
+| 7 mm (max) | 2.3 | 273 | 294 | 324 | 375 |
 
-Voxel checks (`fitcheck.py`): no overlap between holder and bay, holder and module, or module and bay in the installed pose. The holder and the module both drop in from above without touching the bay (the detent bumps flex 0.5 mm).
+One turn adds about 95 gf. Do not combine the maximum travel with x below about 3.4 mm, because the coil goes solid.
+
+Without the coil rate known better, **calibrate with your scale**: record the force at several knob settings and use that table in the app.
 
 ## Assumptions (check these)
 
 - Flange 2.0 mm thick.
 - Barrel 28.2 mm from the flange underside to the nose end (A 30.2 minus the flange).
-- Ring 6.0 mm tall above the flange, pin 8 mm above the ring, so the pin top at rest is 16 mm above the flange.
+- Ring 6.0 mm tall above the flange, pin 8 mm above the ring.
 - Internal spring 10 gf at touch and 165 gf at 8 mm (your measurement, treated as linear).
 - Printed PETG shear modulus about 500 MPa.
+- Nothing above the bay's top face (h 113.5): the knob reaches 113.4.
 
-If any dimension is off, change `params.py` and rerun: `python3 cutter_bay.py; python3 cutter_pusher.py std; python3 fitcheck.py`. The module's arm height follows from the pin height automatically.
+Change `params.py` and rerun `python3 cutter_bay.py; python3 cutter_adjust.py; python3 fit_adj.py` if any dimension is off.
 
 ## Consequences
 
 - The tool axis moves 3.0 mm in model y compared with the pen bay, so the cutter needs its own XY offset.
 - The blade is always exposed (about 5 mm free-hanging). Lift Z before travelling near the purge bin, and run homing and bed mesh with the cutter off.
 - The nose is flush with the bottom of the tube, so Z touch needs its own calibration.
+- The earlier notch-and-finger retention in v1 could not hold the coil's push, so it was replaced by the key.

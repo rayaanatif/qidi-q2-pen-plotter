@@ -5,7 +5,7 @@ Nothing here has been cut yet. The parts are designed and fit-checked on a compu
 ## Approach
 
 - A **GCC blade holder** (spring-loaded pin on top, 30/45/60 degree blades). The bay hangs it by its flange. A **printed coil on the pin** sets the cutting force, so the blade backs off when the surface rises instead of digging in. This is the same principle as the Bambu cutter.
-- No extra components, everything is printed. See [hardware/cutter-gcc](../hardware/cutter-gcc/README.md) for the bay, the three coil variants, the assumptions and the force table.
+- No extra components, everything is printed. See [hardware/cutter-gcc](../hardware/cutter-gcc/README.md) for the bay, the adjustable pusher, the assumptions and the force table.
 - Cut on a sticky cutting mat, never straight onto the PEI plate.
 - The page mesh (`PLOT_MESH`) follows the surface. The cut force is set by Z through the spring.
 

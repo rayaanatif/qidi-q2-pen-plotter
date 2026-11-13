@@ -24,7 +24,7 @@ vox=ST**3
 def ov(a,b,t=0.5): return float(((a>t)&(b>t)).sum()*vox)
 print("holder vs bay (clearance bore +0.175 radial):", "%.2f mm3"%ov(holder(0),Bf))
 print("holder with +0.1 mm oversize vs bay: %.2f mm3"%ov(holder(0,0.1),Bf))
-for v in VARIANTS:
+for v in [k for k in VARIANTS if k!='adj']:
     P=place(v)
     for x in (0.0,XEQ,PIN_TRAVEL):
         # pusher assumed relaxed pose: disc at zd0; compare against holder, disc only interferes if pin top above zd0 -> flag by contact depth
@@ -40,7 +40,7 @@ for dh in np.arange(0,70,1.0):
     sh=int(round(dh/ST)); S=np.zeros_like(Hh); S[:,sh:,:]=Hh[:,:Hh.shape[1]-sh,:] if sh>0 else Hh
     worst=max(worst,ov(S,Bf))
 print("holder sweep from 70 mm above: max overlap with bay %.2f mm3"%worst)
-for v in VARIANTS:
+for v in [k for k in VARIANTS if k!='adj']:
     P=place(v); g=geom(v)
     Hx=holder(XEQ); 
     # module held rigid at the moment the disc touches the pin (eq pin top) and above

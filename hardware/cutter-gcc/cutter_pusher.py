@@ -9,8 +9,7 @@ from params import *
 from module_geom import *
 v=sys.argv[1] if len(sys.argv)>1 else 'std'
 g=geom(v); R,A,B,P,N,ZS,AH,zd0=g['R'],g['A'],g['B'],g['P'],g['N'],g['ZS'],g['AH'],g['zd0']
-HB=hbt(v)                       # bump top face above AH
-TONG_TOP=AH+HB+8.0
+TONG_TOP=MOD_TOP
 DISC_R=5.9; LAND_IN=3.9; LAND_OUT=R+A+0.9
 TW=6.4; TY0,TY1=110.3,112.3     # tongue half width, back/front faces
 H0G=-1+ST*np.floor((zd0-2+1)/ST)
@@ -47,24 +46,10 @@ def arm(X,Y,H):
     under=AH-0.3+np.maximum(0.0,LAND_IN-r)       # conical roof inside the bore
     return np.maximum(d2,np.maximum(under-H,H-(AH+ARM_T)))
 G.op('add',(CX-8,CX+8),(TY0-0.5,YT+8),(AH-0.4,AH+ARM_T),arm)
-# tongue (vertical plate) with two cantilever fingers carrying the detent bumps
-G.op('add',(CX-TW,CX+TW),(TY0,TY1),(AH-0.3,TONG_TOP),sd_box(CX-TW,CX+TW,TY0,TY1,AH-0.3,TONG_TOP))
-FR=AH+HB-18.0; FT=AH+HB+2.0                  # finger root / tip heights
-for sg in (-1,1):
-    x_in,x_mid,x_out=(CX+sg*4.4),(CX+sg*5.2),(CX+sg*6.5)
-    lo,hi=sorted([x_in,x_mid]); G.op('sub',(lo-.1,hi+.1),(TY0-1,TY1+1),(FR,FT+1.0),sd_box(lo,hi,TY0-1,TY1+1,FR,FT+1.0))
-    lo,hi=sorted([x_in,x_out]); G.op('sub',(lo-.1,hi+.1),(TY0-1,TY1+1),(FT,FT+1.0),sd_box(lo,hi,TY0-1,TY1+1,FT,FT+1.0))
-    # bump: flat top, 45 deg lower ramp  (|x-CX|, h)
-    BP=[(6.3,AH+HB),(7.35,AH+HB),(7.35,AH+HB-0.2),(6.4,AH+HB-1.15),(6.3,AH+HB-1.15)]
-    def bump(X,Y,H,sg=sg):
-        u=sg*(X-CX); d=sd_poly2(u,H,BP)
-        return np.maximum(d,np.maximum(TY0-Y,Y-TY1))
-    G.op('add',((CX-7.8) if sg<0 else (CX+6.0),(CX-6.0) if sg<0 else (CX+7.8)),(TY0-0.5,TY1+0.5),(AH+HB-1.4,AH+HB+0.2),bump)
-# grip: sloped shelf at the top of the tongue
-GP=[(TY1,TONG_TOP-4.0),(TY1,TONG_TOP),(TY1+4.0,TONG_TOP)]
-G.op('add',(CX-TW,CX+TW),(TY1-0.2,TY1+4.5),(TONG_TOP-4.1,TONG_TOP+0.1),sd_poly_prism(GP,(CX-TW,CX+TW),'x'))
+# tongue (vertical plate) up to the module top face; the key bar sits on top of it
+G.op('add',(CX-TW,CX+TW),(TY0,TY1),(AH-0.3,MOD_TOP),sd_box(CX-TW,CX+TW,TY0,TY1,AH-0.3,MOD_TOP))
 T,vol=mesh(G)
-name="qs_cutter_pusher_v1_%s.stl"%v
+name="qs_cutter_pusher_v2_%s.stl"%v
 cad.write(name,T); np.savez("Fpusher_%s.npz"%v,F=G.F.astype(np.float16),o=np.array([G.x0,G.y0,G.h0]))
 print(name,len(T),"vol %.0f"%vol,"AH %.2f zd0 %.2f TONG_TOP %.1f rate %.0f gf/mm eq compress %.2f mm"%(AH,zd0,TONG_TOP,g['k_gf'],g['deq']))
 from scipy import ndimage
