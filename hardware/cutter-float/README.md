@@ -1,4 +1,6 @@
-# Floating cutter cartridge (v1, not printed yet)
+# Floating cutter cartridge (v1, superseded, do not print)
+
+> **Superseded.** This assumed the holder's flange is at the bottom of the barrel. The GCC holder actually has its flange near the top, with about 30 mm of knob, ring and pin above it, so this cartridge does not fit it. A redesign is in progress.
 
 A single printed part: sleeve + printed coil spring + skirt. No screws, springs or clips. It gives the blade a soft, adaptive down-force instead of a rigid height.
 
