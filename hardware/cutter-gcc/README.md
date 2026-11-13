@@ -11,7 +11,7 @@ A GCC-style holder hangs by its flange, and a spring presses its top pin. The pi
 | Part | File | Notes |
 | --- | --- | --- |
 | Cutter bay | `qs_cutter_bay_v1.stl` | Same bracket, spine, dovetails, flanges and wings as pen bay v5. Print the same way (bracket down, no supports). The tube is 3.0 mm further forward (axis y 118.2, was 115.2) so the 15.75 mm flange clears the spine plate. |
-| Pusher module | `qs_cutter_pusher_v1_soft/std/firm.stl` | One part: tongue, arm, coil, pusher disc. Print upright with the disc on the bed, no supports. |
+| Pusher module | `qs_cutter_pusher_v1_soft/std/firm/hard.stl` | One part: tongue, arm, coil, pusher disc. Print upright with the disc on the bed, no supports. |
 
 Coil variants (estimated from beam theory, printed PETG, **plus or minus 40%**):
 
@@ -20,6 +20,7 @@ Coil variants (estimated from beam theory, printed PETG, **plus or minus 40%**):
 | soft | 24 gf/mm | 44 gf/mm | about 60 gf |
 | std | 33 gf/mm | 52 gf/mm | about 73 gf |
 | firm | 58 gf/mm | 78 gf/mm | about 110 gf |
+| hard | 103 gf/mm | 122 gf/mm | about 295 gf (above 165 gf from blade out about 5 mm) |
 
 Cut force (gf) against pin depression x (blade out is about 0.875 x):
 
@@ -28,8 +29,9 @@ Cut force (gf) against pin depression x (blade out is about 0.875 x):
 | soft | 44 | 88 | 131 | 175 | 219 | 263 |
 | std | 52 | 104 | 156 | 208 | 260 | 312 |
 | firm | 78 | 155 | 233 | 310 | 388 | 466 |
+| hard | 245 | 368 | 490 | 613 | 736 | 858 |
 
-Free-hanging (no contact) every variant sits at x = 6.0, which is about 5 mm of blade. Lowering the carriage after touching the mat raises the force by the total stiffness per mm, so a 0.1 mm Z error is about 5 gf (std). The force is set by Z, so calibrate it with your kitchen scale.
+Free-hanging (no contact) soft, std and firm sit at x = 6.0 (hard at 7.0), which is about 5 mm of blade. Lowering the carriage after touching the mat raises the force by the total stiffness per mm, so a 0.1 mm Z error is about 5 gf (std). The force is set by Z, so calibrate it with your kitchen scale.
 
 ## Fit
 
