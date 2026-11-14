@@ -16,6 +16,8 @@ See [SETUP.md](SETUP.md), step 3.
 | `PLOT_END` | Lifts, restores the printer state and speeds, and parks. |
 | `PLOT_PARK` | Moves to the idle park position. Also handy before taking the bed photo. |
 | `PEN_TOUCH` | Loads the mesh and moves to the middle of the bed so you can find `z_draw`. |
+| `PLOT_IDLE_HOLD` / `PLOT_IDLE_RESTORE` | Keep the motors on (and home kept) while you set up, then put the normal idle timeout back. Called by the macros above. |
+| `PLOT_RESET` | Restores plot-time speeds, idle timeout and the `plotting` flag. Runs by itself (via `PLOT_WATCHDOG`) after a cancelled plot. |
 
 Bounds in `PLOT_MESH` are **nozzle** positions. The pen is 26.45 mm in front of the nozzle.
 
@@ -29,10 +31,11 @@ Bounds in `PLOT_MESH` are **nozzle** positions. The pen is 26.45 mm in front of 
 | `mesh_profile` | `"plot"` | Profile name `PLOT_MESH` creates |
 | `do_tilt` | 1 | Run `Z_TILT_ADJUST` before meshing |
 | `park_x`, `park_y`, `park_z` | 85, 287.5, 13.8 | Idle park position = Qidi's default purge/trash position (rear chute). Out of the camera view and off the bed. It never lowers: if the toolhead is already higher it stays there. |
-| `plotting` | 0 | Set to 1 by `PLOT_START`, back to 0 by `PLOT_END` |
+| `plotting` | 0 | Set to 1 by `PLOT_START`, back to 0 by `PLOT_END` or `PLOT_RESET` |
+| `idle_hold` | 3600 | Idle timeout in seconds while you set up (QIDI stock 12 h; the Q2 tweaked package uses 5 min and turns the motors off) |
 
 To change the park position, edit `park_x`, `park_y` and `park_z`. You can find a good spot by moving the toolhead there and running `GET_POSITION`.
 
-## Optional: CANCEL_PRINT
+## Cancelling a plot
 
-`PLOT_VARS.plotting` exists so a cancel macro can tell a plot from a print. The stock Qidi `CANCEL_PRINT` raises to Z100 and then moves to `X265 Y5`. If you want a cancelled plot to stop safely with the pen clear, add a check on `printer['gcode_macro PLOT_VARS'].plotting` there. This edit is not tested yet, so look at your own `gcode_macro.cfg` before changing anything.
+Stock QIDI `CANCEL_PRINT` lifts to Z100 first and then moves to X265 Y5, so the pen is clear. It does not reset the plot speeds; `PLOT_WATCHDOG` does that within 5 s. See [Q2_TWEAKS.md](Q2_TWEAKS.md) for the firmware package review.
