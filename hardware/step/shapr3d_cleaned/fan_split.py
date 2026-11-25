@@ -6,13 +6,26 @@ BOSS_D=1.6; BOSS_HZ=4.0; BOSS_X0,BOSS_X1=12.5,20.5
 NUT_SKIN=0.9                     # plastic left in front of the nut (outer face of wall)
 HZ=16.0; HX=16.0                 # fan hole pattern 32x32
 YIN=102.8
+_HULL=None
+def plan_hull():
+    """convex plan outline of the shell (z=110 section) incl. its real 45 deg front corners"""
+    global _HULL
+    if _HULL is None:
+        import trimesh
+        from scipy.spatial import ConvexHull
+        export_stl(load_cover(),'/tmp/_lc.stl',tolerance=0.02,angular_tolerance=0.2)
+        sec=trimesh.load('/tmp/_lc.stl').section(plane_origin=[0,0,110],plane_normal=[0,0,1])
+        P=sec.vertices[:,:2]; h=ConvexHull(P)
+        _HULL=[tuple(map(float,P[i])) for i in h.vertices]
+    return _HULL
 def chamfer_front(body):
-    K_out,K_in=96.0+122.7,96.0+122.7-2.5
-    big=prism_x([(94.0,K_in-94.0),(94.0,130),(112,130),(112,K_in-112)],-30,30)
-    band=prism_x([(93.0,120.9),(93.0,122.7),(K_out-122.7,122.7),(104.5,K_out-104.5),(102.8,K_in-102.8),(K_in-120.9,120.9)],-26.37,27.23)
-    for pts in ([(22.7,104.7),(27.5,104.7),(27.5,99.9)],[(-21.9,104.7),(-26.7,104.7),(-26.7,99.9)]):
-        f=Face(Wire.make_polygon([Vector(x,y,110) for x,y in pts],close=True)); band=band-extrude(f,15)
-    return body-big+band
+    """one continuous 45 deg flat face from the roof to the front face, across the full width (both halves and both side plates)."""
+    T=1.8; y0=95.0; z_in,z_top=120.9,122.7; YW=104.5
+    K_in=y0+z_in; K_out=K_in+T*2**0.5          # lines y+z=K
+    big=prism_x([(y0,K_in-y0),(y0,135),(115,135),(115,K_in-115)],-30,30)
+    strip=prism_x([(y0,z_in),(y0,z_top),(K_out-z_top,z_top),(YW,K_out-YW),(YW,K_in-YW)],-30,30)
+    f=Face(Wire.make_polygon([Vector(x,y,100) for x,y in plan_hull()],close=True)); outline=extrude(f,30)
+    return body-big+(strip&outline)
 def lead_slot(): # fan lead exit below the fan bottom edge, both bottom corners
     return [(CX+sg*8.5,CX+sg*13.5) for sg in (1,-1)]
 def build_main():
