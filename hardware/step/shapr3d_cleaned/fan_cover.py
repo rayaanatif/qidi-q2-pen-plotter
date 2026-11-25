@@ -88,14 +88,25 @@ def build_cover():
             h=Pos(CX+sx*HOLE,YF+PAD_T-PIL_DEPTH/2+0.5,ZC+sz*HOLE)*Rot(90,0,0)*Cylinder(PIL_D/2,PIL_DEPTH+1)
             body=body-h
     return body
-def bars():
-    """two flat clamp bars (print flat): stadium 6 wide x 40 long, 1.2 thick, M2 clearance holes on the 32 mm fan pattern"""
-    L=2*HOLE+8; W=6.0; T=1.2
-    def one():
-        b=extrude(Plane.XY*SlotOverall(L,W),amount=T)
-        for sg in (1,-1): b=b-Pos(sg*HOLE,0,T/2)*Cylinder(1.2,T+1)
-        return b
-    return Pos(0,-(W/2+1.5),T/2-0.0)*one()+Pos(0,(W/2+1.5),0)*one() if False else (Pos(0,-(W/2+1.5),0)*one(), Pos(0,(W/2+1.5),0)*one())
+FR_T=1.6; FR_W=3.2; FL_D=7.0; POST_D=3.8; POST_L=9.7; HOLE_CL=2.4   # clamp frame
+def clamp_frame():
+    """Fan clamp frame (print with the flat face on the bed, posts up).  Four posts drop into the fan's 4.3 mm holes (M4-ish -> M2 adapter),
+    each post is bored 2.4 mm for an M2 screw into the cover's pilots; the flat frame presses on the fan top.  Frame lies in XY (z=0 is the bed),
+    centred on the fan; flat ring of FR_W width round the edge + a 7 mm flange at each post."""
+    S=FAN                                     # outer 40 x 40 (same as the fan)
+    ring=Box(S,S,FR_T,align=(Align.CENTER,Align.CENTER,Align.MIN))-Box(S-2*FR_W,S-2*FR_W,FR_T+2,align=(Align.CENTER,Align.CENTER,Align.MIN))
+    ring=Pos(0,0,0)*ring
+    body=ring
+    for sx in (1,-1):
+        for sy in (1,-1):
+            fl=Pos(sx*HOLE,sy*HOLE,0)*Cylinder(FL_D/2,FR_T,align=(Align.CENTER,Align.CENTER,Align.MIN))
+            post=Pos(sx*HOLE,sy*HOLE,FR_T-0.01)*Cylinder(POST_D/2,POST_L-0.4+0.01,align=(Align.CENTER,Align.CENTER,Align.MIN))
+            tip=Pos(sx*HOLE,sy*HOLE,FR_T+POST_L-0.4-0.01)*Cone(POST_D/2,POST_D/2-0.4,0.4,align=(Align.CENTER,Align.CENTER,Align.MIN))
+            body=body+fl+post+tip
+    for sx in (1,-1):
+        for sy in (1,-1):
+            body=body-Pos(sx*HOLE,sy*HOLE,-1)*Cylinder(HOLE_CL/2,FR_T+POST_L+2,align=(Align.CENTER,Align.CENTER,Align.MIN))
+    return body
 if __name__=="__main__":
     c=build_cover(); bb=c.bounding_box()
     print('cover valid',c.is_valid,'solids',len(c.solids()),'vol %.0f'%c.volume,[round(v,1) for v in (bb.min.X,bb.min.Y,bb.min.Z,bb.max.X,bb.max.Y,bb.max.Z)])
