@@ -5,13 +5,14 @@ from tomodel import *
 CX=0.4
 def box(x0,x1,y0,y1,z0,z1): return Pos((x0+x1)/2,(y0+y1)/2,(z0+z1)/2)*Box(x1-x0,y1-y0,z1-z0)
 YF=104.5                      # front outer face of the cover wall
-ZC=44.0                       # fan centre (vent slot field centre)
+ZC=66.5                       # fan centre: fan top edge 72.0 mm above the cover bottom (z=14.5)
 FAN=40.0; FCL=0.4             # fan size, pocket clearance
 PAD_T=4.0; RIM_T=1.2; RIM_H=3.0
 FAN_T=10.0
 HOLE=16.0                     # fan hole spacing/2 (32 mm pattern)
 PIL_D=1.8; PIL_DEPTH=5.0      # M2 self-tap pilot
-WIN_HW,WIN_HH=16.0,12.0       # vent window half sizes
+WX=13.8                       # vent window half width (keeps clear of the M2 pilots at +-16)
+WZ0=ZC-FAN/2+0.1; WZ1=ZC+FAN/2-2.0   # vent window z range
 # wire gutter
 RT=1.2; GAP=2.8; RH=1.8; LID=1.0
 def load_cover():
@@ -30,8 +31,12 @@ def wedge():
     return prism_x([(y0,zt-0.01),(y1,zt-0.01),(y0,zt+(y1-y0))],CX-ph,CX+ph)
 def bevel():
     """45 deg bevel on the model-lower edge of the vent window (the print ceiling), wider on the fan side"""
-    zb=ZC-WIN_HH; yi=102.6; yo=YF+PAD_T+1.0
-    return prism_x([(yi,zb),(yo,zb),(yo,zb-(yo-yi))],CX-WIN_HW,CX+WIN_HW)
+    zb=WZ0; yi=102.6; yo=YF+PAD_T+1.0
+    return prism_x([(yi,zb),(yo,zb),(yo,zb-(yo-yi))],CX-WX,CX+WX)
+def fills():
+    """close the outer ends of the original vent slots behind the pad so the pilots have solid wall around them"""
+    ph=FAN/2+FCL/2+RIM_T
+    return box(CX+WX,CX+ph,102.8,YF+0.2,ZC-ph,ZC+ph)+box(CX-ph,CX-WX,102.8,YF+0.2,ZC-ph,ZC+ph)
 def mirror_x(s): return s.mirror(Plane.YZ.offset(CX))
 def gutter_right():
     """rails + lids for the right-hand wire path: up the front face, across at z=89.3-94.1, then back along the side plate"""
@@ -48,7 +53,7 @@ def gutter_right():
     out.append(box(xl+RT+GAP,xe,yb,yt,zH0,zH0+RT))               # lower rail
     out.append(box(xl,xe,yb,yt,zH0+RT+GAP,zH0+2*RT+GAP))         # upper rail
     # lids on the front runs
-    for zc in (77.0,85.0): out.append(box(xl,xl+2*RT+GAP,yt-LID,yt,zc-3,zc+3))
+    
     out.append(box(xe-6,xe-1,yt-LID,yt,zH0,zH0+2*RT+GAP))
     # side plate run (outer face x=27.23), runs back from the corner to the rear
     xs=27.23-0.2; xt=27.23+RH
@@ -60,7 +65,8 @@ def gutter_right():
 def build_cover():
     cov=load_cover()
     # vent window through wall (opens the slot field to a single window)
-    cov=cov-box(CX-WIN_HW,CX+WIN_HW,100,YF+PAD_T+1,ZC-WIN_HH,ZC+WIN_HH)-bevel()
+    cov=cov+fills()
+    cov=cov-box(CX-WX,CX+WX,100,YF+PAD_T+1,WZ0,WZ1)-bevel()
     # mounting pad
     ph=FAN/2+FCL/2+RIM_T
     pad=box(CX-ph,CX+ph,YF-0.3,YF+PAD_T,ZC-ph,ZC+ph)
@@ -69,7 +75,7 @@ def build_cover():
     for sx in (1,-1):   # keep the wire exit clear: no wedge over the notched ends of the top rim
         w=w-box(min(CX+sx*8,CX+sx*21.4),max(CX+sx*8,CX+sx*21.4),YF+0.0,YF+PAD_T+RIM_H+1,zt-0.5,zt+9)
     pad=pad+w
-    pad=pad-box(CX-WIN_HW,CX+WIN_HW,100,YF+PAD_T+1,ZC-WIN_HH,ZC+WIN_HH)-bevel()
+    pad=pad-box(CX-WX,CX+WX,100,YF+PAD_T+1,WZ0,WZ1)-bevel()
     # rim (locates the fan), notched at the middle of each side
     ro=ph; ri=FAN/2+FCL/2
     rim=box(CX-ro,CX+ro,YF+PAD_T-0.01,YF+PAD_T+RIM_H,ZC-ro,ZC+ro)-box(CX-ri,CX+ri,YF+PAD_T-1,YF+PAD_T+RIM_H+1,ZC-ri,ZC+ri)
