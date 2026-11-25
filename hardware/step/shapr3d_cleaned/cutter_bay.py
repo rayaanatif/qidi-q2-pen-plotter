@@ -32,7 +32,7 @@ def build_bay():
     for (xa,xb) in ((CX+8.5,CX+10.8),(CX-10.8,CX-8.5)): body=body+prism_x(WG,xa,xb)
     # --- bore through the tube with a 0.6 x 45 deg lead-in chamfer at the nose end
     RELIEF=BORE_R+0.2   # nose-end relief so the barrel always passes
-    bore=revolve_rz([(0,HB0-1.0),(RELIEF+1.6,HB0-1.0),(RELIEF,HB0+0.6),(RELIEF,HB0+3.0),(BORE_R,HB0+3.0),(BORE_R,HT+1.0),(0,HT+1.0)],CX,YT)
+    bore=revolve_rz([(0,HB0-1.0),(RELIEF+1.6,HB0-1.0),(RELIEF,HB0+0.6),(RELIEF,HB0+3.0),(BORE_R,HB0+3.0),(BORE_R,HT-ENTRY_CH),(BORE_R+ENTRY_CH,HT),(BORE_R+ENTRY_CH,HT+1.0),(0,HT+1.0)],CX,YT)
     body=body-bore
     # --- dovetail grooves (female, widening into the arm; 45 deg flanks)
     for sign in (-1,1):
