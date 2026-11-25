@@ -5,6 +5,7 @@ No printed coil. Cutting force = the blade holder's own spring + the toolhead's 
 ## What changed in v2
 - The holder seat is **7.05 mm lower**. The blade tip now sits level with the pen tip, so the **pen `z_draw` works for the blade** and you don't need `PEN_TOUCH` when swapping.
 - Pilot holes are **M2 self-tap, 1.8 mm**. The lower hole is 4 mm lower than before. Cap slots are 2.6 mm wide.
+- Tube bore opened to 12.2 mm (was 11.9) with a nose-end relief, so the barrel passes after printing shrink. The rail plate now runs the full length of the tube so it cannot flex.
 
 ## Print list (STEP, `hardware/step/shapr3d_cleaned/`; `_print` files are already in print orientation, do not rotate)
 | File | Qty | Notes |

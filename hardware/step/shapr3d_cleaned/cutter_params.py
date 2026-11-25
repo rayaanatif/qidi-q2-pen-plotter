@@ -11,8 +11,8 @@ PIN_TRAVEL=8.0
 HB0=1.0           # tube bottom (nose end sits flush here)
 LOWER=7.05          # seat lowered: blade tip 8.2 below the cutter tube end (h=1.0) = 7.2 below the pen tube end (h=0) = pen tip (pen jig 4.2 + 3.0 collar)
 HT=HB0+BARREL_L-LOWER   # flange underside rests here  (23.2)
-BORE_R=BARREL_D/2+0.175   # 5.95
-RT=9.2; SEAT_R=6.9
+BORE_R=BARREL_D/2+0.325   # 6.10 (printed holes shrink; v2 5.95 was too tight at the nose end)
+RT=9.2; SEAT_R=7.1
 # ---- pin top (rest) above flange underside
 PIN0=HT+FLANGE_T+RING_H+PIN_E      # 45.2
 RING_TOP=HT+FLANGE_T+RING_H        # 37.2
