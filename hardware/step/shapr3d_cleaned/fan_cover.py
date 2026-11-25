@@ -72,22 +72,16 @@ def build_cover():
     pad=box(CX-ph,CX+ph,YF-0.3,YF+PAD_T,ZC-ph,ZC+ph)
     zt=ZC+ph
     w=wedge()
-    for sx in (1,-1):   # keep the wire exit clear: no wedge over the notched ends of the top rim
-        w=w-box(min(CX+sx*8,CX+sx*21.4),max(CX+sx*8,CX+sx*21.4),YF+0.0,YF+PAD_T+RIM_H+1,zt-0.5,zt+9)
     pad=pad+w
     pad=pad-box(CX-WX,CX+WX,100,YF+PAD_T+1,WZ0,WZ1)-bevel()
     # rim (locates the fan), notched at the middle of each side
     ro=ph; ri=FAN/2+FCL/2
     rim=box(CX-ro,CX+ro,YF+PAD_T-0.01,YF+PAD_T+RIM_H,ZC-ro,ZC+ro)-box(CX-ri,CX+ri,YF+PAD_T-1,YF+PAD_T+RIM_H+1,ZC-ri,ZC+ri)
     # wire notches: both ends of the top rim, plus bottom/sides middle
-    for sx in (1,-1):
-        rim=rim-box(CX+sx*8-(0 if sx>0 else 12),CX+sx*8+(12 if sx>0 else 0),YF+PAD_T-1,YF+PAD_T+RIM_H+1,ZC+ri-0.5,ZC+ro+0.5)
     rim=rim-box(CX-5,CX+5,YF+PAD_T-1,YF+PAD_T+RIM_H+1,ZC-ro-0.5,ZC-ri+0.5)
     rim=rim-box(CX-ro-0.5,CX-ri+0.5,YF+PAD_T-1,YF+PAD_T+RIM_H+1,ZC-5,ZC+5)
     rim=rim-box(CX+ri-0.5,CX+ro+0.5,YF+PAD_T-1,YF+PAD_T+RIM_H+1,ZC-5,ZC+5)
     body=cov+pad+rim
-    gs=gutter_right()
-    for g in gs: body=body+g; body=body+mirror_x(g)
     # M2 self-tap pilots at 32 mm pattern
     for sx in (1,-1):
         for sz in (1,-1):
