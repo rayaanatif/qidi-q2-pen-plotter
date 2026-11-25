@@ -97,6 +97,31 @@ def build_cover():
             body=body-hexp
             hole=Pos(cx_,YF+PAD_T-NUT_D-1.3,cz_)*Rot(90,0,0)*Cylinder(SCR_HOLE/2,2.8)
             body=body-hole
+    return printify(body)
+
+def printify(body):
+    """Print-friendly changes (roof-down printing, no supports): vertical side vents, 45 deg feet, bigger front-top chamfer, fan lead grooves."""
+    # 1. side vents: fill the old horizontal slots, cut vertical slots with pointed (45 deg) tops
+    for x0,x1 in ((25.55,27.23),(-26.37,-24.8)):
+        body=body+box(x0,x1,75.0,95.2,68.0,89.0)
+    for yc in (79.0,83.6,88.2,92.8):
+        w=1.7; z0,z1=69.0,88.0
+        pts=[(yc-w,z0+w),(yc,z0),(yc+w,z0+w),(yc+w,z1-w),(yc,z1),(yc-w,z1-w)]
+        for x0,x1 in ((24.9,28.0),(-28.0,-24.2)):
+            body=body-prism_x(pts,x0,x1)
+    # 2. bottom feet: replace the flat 'ceiling' (print overhang) by a 45 deg face
+    body=body-prism_x([(90,13.8),(98.2,22.0),(98.2,22.4),(90,22.4)],-25.0,25.0)
+    # 3. front-top chamfer 45 deg, 8.5 mm (was 4.5), roof/shell thickness kept
+    K_out,K_in=96.0+122.7,96.0+122.7-2.5
+    big=prism_x([(94.0,K_in-94.0),(94.0,130),(112,130),(112,K_in-112)],-30,30)
+    band=prism_x([(93.0,120.9),(93.0,122.7),(K_out-122.7,122.7),(104.5,K_out-104.5),(102.8,K_in-102.8),(K_in-120.9,120.9)],-26.37,27.23)
+    for pts in ([(22.7,104.7),(27.5,104.7),(27.5,99.9)],[(-21.9,104.7),(-26.7,104.7),(-26.7,99.9)]):
+        f=Face(Wire.make_polygon([Vector(x,y,110) for x,y in pts],close=True)); band=band-extrude(f,15)
+    body=body-big+band
+    # 4. fan lead grooves below the fan edge, both bottom corners, running out of the pad bottom
+    for sg in (1,-1):
+        xa,xb=sorted((CX+sg*8.5,CX+sg*13.5))
+        body=body-box(xa,xb,YF+PAD_T-1.8,YF+PAD_T+1,ZC-PAD_Z-1,ZC-FAN/2-0.3)
     return body
 def jbracket():
     """Fan clamp bracket (print two).  J-profile extruded 44 mm: foot (5.5 thick, two M2 holes), web beside the fan edge, 1.3 mm lip over the fan face.
