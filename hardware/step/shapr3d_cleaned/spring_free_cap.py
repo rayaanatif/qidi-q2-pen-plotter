@@ -1,12 +1,13 @@
 """Spring-free cutter: bay rib + rigid height-adjustable cap. Model frame (x, y, h)."""
 from build123d import *
 CX=0.4; YT=118.2
-PIN0=45.2; X0=4.0; TD=1.5
+import params as P
+PIN0=P.PIN0; X0=4.0; TD=1.5          # PIN0 follows the lowered seat (39.2)
 Y_FACE=109.91          # spine front face
 RB_Y0,RB_Y1=109.4,112.4; RB_W0,RB_W1=3.2,4.7     # dovetail rib half widths at base / top
-RB_H0,RB_H1=56.0,96.0
+RB_H0,RB_H1=50.0,90.0
 CLR=0.3                # cap-to-rib clearance
-PIL_D=2.6; PIL_Y0=106.2; HS=(68.0,80.0)          # pilot holes (screw heights)
+PIL_D=1.8; PIL_Y0=106.2; HS=(58.0,74.0)   # M2 self-tap pilots (1.8); lower hole 4 mm lower          # pilot holes (screw heights)
 def rib_profile(clr=0.0,y0=RB_Y0,y1=RB_Y1):
     w=lambda y: RB_W0+(y-RB_Y0)*(RB_W1-RB_W0)/(RB_Y1-RB_Y0)+clr
     return [(CX-w(y0),y0),(CX+w(y0),y0),(CX+w(y1),y1),(CX-w(y1),y1)]
@@ -21,9 +22,9 @@ def add_rib(bay):
         out=out-hole
     return out
 # ---- cap
-DISC_R=4.5; COL_R=3.8; ARM0,ARM1=52.0,55.0; ZT=90.0
+DISC_R=4.5; COL_R=3.8; ARM0,ARM1=PIN0-X0+TD+9.3,PIN0-X0+TD+12.3; ZT=84.0
 WEB_X=6.4; WEB_Y0=Y_FACE+CLR; WEB_Y1=RB_Y1+CLR+2.0     # 110.21 .. 114.7
-SLOT_W=3.4; TRAVEL=7.0
+SLOT_W=2.6; TRAVEL=7.0
 def cap(x0=X0):
     zd=PIN0-x0
     disc=Pos(CX,YT,zd)*Cylinder(DISC_R,TD,align=(Align.CENTER,Align.CENTER,Align.MIN))
