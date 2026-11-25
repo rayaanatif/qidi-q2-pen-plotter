@@ -11,8 +11,8 @@ FAN=40.0; FCL=0.4             # fan size, pocket clearance
 PAD_T=4.0; RIM_T=1.2; RIM_H=3.0; PAD_Z=28.0     # pad half-height (room for the clamp-bracket feet)
 FAN_T=10.0
 HOLE=16.0                     # fan hole spacing/2 (32 mm pattern)
-NUT_AF=4.2; NUT_D=1.8; SCR_HOLE=2.4; HOLE_X=17.5; FOOT_W=4.45; FOOT_T=5.5   # M2 nut trap (nut 4.0 AF x 1.6), M2x10 screws
-WX=13.8                       # vent window half width (keeps clear of the M2 pilots at +-16)
+NUT_AF=5.5; NUT_D=2.5; SCR_HOLE=3.2; HOLE_X=16.0; HOLE_Z=16.0; FOOT_W=4.45; FOOT_T=5.5   # M2 nut trap (nut 4.0 AF x 1.6), M2x10 screws
+WX=12.4                       # vent window half width (keeps clear of the M2 pilots at +-16)
 WZ0=ZC-FAN/2+0.1; WZ1=ZC+FAN/2-2.0   # vent window z range
 # wire gutter
 RT=1.2; GAP=2.8; RH=1.8; LID=1.0
@@ -92,10 +92,10 @@ def build_cover():
     # captive M2 nut traps + clearance holes for the clamp brackets (nuts drop in from the front under the feet)
     for sx in (1,-1):
         for sz in (1,-1):
-            cx_,cz_=CX+sx*HOLE_X,ZC+sz*(FAN/2+FOOT_W)
+            cx_,cz_=CX+sx*HOLE_X,ZC+sz*HOLE_Z
             hexp=prism_y(hexagon(cx_,cz_,NUT_AF),YF+PAD_T-NUT_D,YF+PAD_T+1)
             body=body-hexp
-            hole=Pos(cx_,YF+PAD_T-NUT_D-1.5,cz_)*Rot(90,0,0)*Cylinder(SCR_HOLE/2,3.4)
+            hole=Pos(cx_,YF+PAD_T-NUT_D-1.3,cz_)*Rot(90,0,0)*Cylinder(SCR_HOLE/2,2.8)
             body=body-hole
     return body
 def jbracket():
